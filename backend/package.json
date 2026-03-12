@@ -8,7 +8,7 @@
     "install:dev": "npm install --include=dev"
   },
   "engines": {
-    "node": "18.18.0"
+    "node": "24.0"
   },
   "dependencies": {
     "express": "^4.18.2",
