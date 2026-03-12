@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/user/Downloads/contractor-report-system/app/%28app%29/layout.tsx"],"sourcesContent":["import { StoreProvider } from \"@/components/store-provider\"\nimport { AppShell } from \"@/components/app-shell\"\n\nexport default function AppLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <StoreProvider>\n      <AppShell>{children}</AppShell>\n    </StoreProvider>\n  )\n}\n"],"names":[],"mappings":";;;;;;;;;;;;;;;;;;AAGe,SAAS,UAAU,EAAE,QAAQ,EAAiC;IAC3E,qBACE,6RAAC;kBACC,cAAA,6RAAC;sBAAU;;;;;;;;;;;AAGjB"}},
+    {"offset": {"line": 41, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/user/Downloads/contractor-report-system/node_modules/next/src/server/route-modules/app-page/vendored/rsc/react-jsx-dev-runtime.ts"],"sourcesContent":["module.exports = (\n  require('../../module.compiled') as typeof import('../../module.compiled')\n).vendored['react-rsc']!.ReactJsxDevRuntime\n"],"names":["module","exports","require","vendored","ReactJsxDevRuntime"],"mappings":"AAAAA,OAAOC,OAAO,GACZC,QAAQ,+JACRC,QAAQ,CAAC,YAAY,CAAEC,kBAAkB","ignoreList":[0]}}]
+}

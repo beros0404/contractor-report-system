@@ -1,0 +1,50 @@
+{
+  "pages": {
+    "/_app": [
+      "static/chunks/929f6_next_dist_compiled_5357d345._.js",
+      "static/chunks/929f6_next_dist_shared_lib_3674658d._.js",
+      "static/chunks/929f6_next_dist_client_b36118a5._.js",
+      "static/chunks/929f6_next_dist_356dabe3._.js",
+      "static/chunks/929f6_next_app_86c0b45b.js",
+      "static/chunks/[next]_entry_page-loader_ts_ef895a03._.js",
+      "static/chunks/929f6_react-dom_f7bbbe31._.js",
+      "static/chunks/929f6_1f2a9b1e._.js",
+      "static/chunks/[root-of-the-server]__ba6bd063._.js",
+      "static/chunks/Downloads_contractor-report-system_pages__app_2da965e7._.js",
+      "static/chunks/turbopack-Downloads_contractor-report-system_pages__app_956ba99e._.js"
+    ],
+    "/_error": [
+      "static/chunks/929f6_next_dist_compiled_5357d345._.js",
+      "static/chunks/929f6_next_dist_shared_lib_626cf261._.js",
+      "static/chunks/929f6_next_dist_client_b36118a5._.js",
+      "static/chunks/929f6_next_dist_ca864213._.js",
+      "static/chunks/929f6_next_error_c7e22b58.js",
+      "static/chunks/[next]_entry_page-loader_ts_0468b883._.js",
+      "static/chunks/929f6_react-dom_f7bbbe31._.js",
+      "static/chunks/929f6_1f2a9b1e._.js",
+      "static/chunks/[root-of-the-server]__9dd18eff._.js",
+      "static/chunks/Downloads_contractor-report-system_pages__error_2da965e7._.js",
+      "static/chunks/turbopack-Downloads_contractor-report-system_pages__error_3cddbc9c._.js"
+    ]
+  },
+  "devFiles": [],
+  "polyfillFiles": [
+    "static/chunks/929f6_next_dist_build_polyfills_polyfill-nomodule.js"
+  ],
+  "lowPriorityFiles": [
+    "static/development/_ssgManifest.js",
+    "static/development/_buildManifest.js"
+  ],
+  "rootMainFiles": [
+    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_e4bfe912._.js",
+    "static/chunks/929f6_next_dist_compiled_react-dom_3528daf4._.js",
+    "static/chunks/929f6_next_dist_compiled_react-server-dom-turbopack_94a58485._.js",
+    "static/chunks/929f6_next_dist_compiled_next-devtools_index_d73c79f8.js",
+    "static/chunks/929f6_next_dist_compiled_222dd77a._.js",
+    "static/chunks/929f6_next_dist_client_d1ff2842._.js",
+    "static/chunks/929f6_next_dist_440016ab._.js",
+    "static/chunks/929f6_@swc_helpers_cjs_d61f6770._.js",
+    "static/chunks/Downloads_contractor-report-system_a0ff3932._.js",
+    "static/chunks/turbopack-Downloads_contractor-report-system_7d599593._.js"
+  ]
+}
