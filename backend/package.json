@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "install:dev": "npm install --include=dev"
   },
   "engines": {
     "node": "18.18.0"
