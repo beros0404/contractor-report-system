@@ -1,0 +1,330 @@
+import type {
+  Contrato,
+  Actividad,
+  Aporte,
+  Evidencia,
+  Informe,
+  Configuracion,
+} from "./types"
+
+export const contratoInicial: Contrato = {
+  id: "cont-001",
+  numero: "CPS-2025-0847",
+  entidad: "Secretaria Distrital de Planeacion",
+  objeto:
+    "Prestacion de servicios profesionales para apoyar la gestion tecnica y administrativa del proyecto de modernizacion institucional.",
+  fechaInicio: "2025-02-01",
+  fechaFin: "2025-12-31",
+  valor: 72000000,
+  supervisorNombre: "Martha Lucia Gonzalez",
+  supervisorCargo: "Directora de Planeacion",
+  contratistaNombre: "Carlos Andres Rivera",
+  contratistaCedula: "1.020.456.789",
+  contratistaProfesion: "Ingeniero Industrial",
+}
+
+export const actividadesIniciales: Actividad[] = [
+  {
+    id: "act-001",
+    contratoId: "cont-001",
+    numero: 1,
+    titulo: "Apoyo en la formulacion de planes estrategicos",
+    descripcion:
+      "Elaborar documentos tecnicos de apoyo para la formulacion de planes estrategicos institucionales, incluyendo diagnosticos, matrices de priorizacion y propuestas de mejora continua.",
+    porcentajePeso: 20,
+  },
+  {
+    id: "act-002",
+    contratoId: "cont-001",
+    numero: 2,
+    titulo: "Seguimiento a indicadores de gestion",
+    descripcion:
+      "Realizar el seguimiento periodico a los indicadores de gestion definidos en el plan de accion institucional, elaborando informes de avance y alertas tempranas.",
+    porcentajePeso: 15,
+  },
+  {
+    id: "act-003",
+    contratoId: "cont-001",
+    numero: 3,
+    titulo: "Elaboracion de informes tecnicos",
+    descripcion:
+      "Preparar informes tecnicos mensuales sobre el avance de los proyectos asignados, con analisis de resultados y recomendaciones de mejora.",
+    porcentajePeso: 20,
+  },
+  {
+    id: "act-004",
+    contratoId: "cont-001",
+    numero: 4,
+    titulo: "Asistencia a reuniones y mesas de trabajo",
+    descripcion:
+      "Participar en reuniones de coordinacion, mesas de trabajo interinstitucionales y comites tecnicos relacionados con los proyectos asignados.",
+    porcentajePeso: 15,
+  },
+  {
+    id: "act-005",
+    contratoId: "cont-001",
+    numero: 5,
+    titulo: "Revision y actualizacion documental",
+    descripcion:
+      "Revisar, actualizar y organizar la documentacion tecnica y administrativa relacionada con los procesos a cargo, asegurando el cumplimiento de los procedimientos del sistema de gestion de calidad.",
+    porcentajePeso: 15,
+  },
+  {
+    id: "act-006",
+    contratoId: "cont-001",
+    numero: 6,
+    titulo: "Apoyo en capacitaciones y transferencia de conocimiento",
+    descripcion:
+      "Disenar y participar en jornadas de capacitacion y transferencia de conocimiento dirigidas al equipo de trabajo, sobre temas relacionados con las obligaciones contractuales.",
+    porcentajePeso: 15,
+  },
+]
+
+export const aportesIniciales: Aporte[] = [
+  {
+    id: "apo-001",
+    actividadId: "act-001",
+    fecha: "2025-02-05",
+    descripcion:
+      "Se elaboro el documento de diagnostico institucional para la Direccion de Planeacion, incluyendo el analisis de brechas y oportunidades de mejora identificadas en el periodo anterior.",
+    evidenciaIds: ["evi-001"],
+    creadoEn: "2025-02-05T10:30:00",
+  },
+  {
+    id: "apo-002",
+    actividadId: "act-001",
+    fecha: "2025-02-12",
+    descripcion:
+      "Se presento la propuesta de matriz de priorizacion de iniciativas estrategicas ante el comite directivo, obteniendo retroalimentacion positiva.",
+    evidenciaIds: ["evi-002"],
+    creadoEn: "2025-02-12T14:00:00",
+  },
+  {
+    id: "apo-003",
+    actividadId: "act-002",
+    fecha: "2025-02-07",
+    descripcion:
+      "Se realizo la recoleccion de datos de los 12 indicadores de gestion correspondientes al mes de enero, consolidando la informacion en la herramienta de seguimiento.",
+    evidenciaIds: ["evi-003"],
+    creadoEn: "2025-02-07T09:15:00",
+  },
+  {
+    id: "apo-004",
+    actividadId: "act-002",
+    fecha: "2025-02-14",
+    descripcion:
+      "Se genero el informe de alertas tempranas para los indicadores que presentan desviacion superior al 10% respecto a las metas establecidas.",
+    evidenciaIds: [],
+    creadoEn: "2025-02-14T16:45:00",
+  },
+  {
+    id: "apo-005",
+    actividadId: "act-003",
+    fecha: "2025-02-20",
+    descripcion:
+      "Se elaboro el informe tecnico mensual del proyecto de modernizacion correspondiente al mes de febrero, con el analisis de avance del 78% en las metas programadas.",
+    evidenciaIds: ["evi-004", "evi-005"],
+    creadoEn: "2025-02-20T11:00:00",
+  },
+  {
+    id: "apo-006",
+    actividadId: "act-004",
+    fecha: "2025-02-03",
+    descripcion:
+      "Se asistio a la reunion de coordinacion con la Secretaria General para articular el cronograma de actividades del primer trimestre.",
+    evidenciaIds: ["evi-006"],
+    creadoEn: "2025-02-03T08:30:00",
+  },
+  {
+    id: "apo-007",
+    actividadId: "act-004",
+    fecha: "2025-02-10",
+    descripcion:
+      "Se participo en la mesa de trabajo interinstitucional sobre gobierno digital con representantes de 5 entidades distritales.",
+    evidenciaIds: ["evi-007"],
+    creadoEn: "2025-02-10T10:00:00",
+  },
+  {
+    id: "apo-008",
+    actividadId: "act-004",
+    fecha: "2025-02-17",
+    descripcion:
+      "Se asistio al comite tecnico de seguimiento del proyecto de transformacion digital, presentando los avances del componente a cargo.",
+    evidenciaIds: [],
+    creadoEn: "2025-02-17T14:30:00",
+  },
+  {
+    id: "apo-009",
+    actividadId: "act-005",
+    fecha: "2025-02-06",
+    descripcion:
+      "Se inicio la revision del Manual de Procesos y Procedimientos del area, identificando 8 documentos que requieren actualizacion.",
+    evidenciaIds: ["evi-008"],
+    creadoEn: "2025-02-06T09:00:00",
+  },
+  {
+    id: "apo-010",
+    actividadId: "act-005",
+    fecha: "2025-02-18",
+    descripcion:
+      "Se actualizo el procedimiento de gestion documental y se cargo en el sistema de calidad institucional para revision del lider de proceso.",
+    evidenciaIds: ["evi-009"],
+    creadoEn: "2025-02-18T15:00:00",
+  },
+  {
+    id: "apo-011",
+    actividadId: "act-006",
+    fecha: "2025-02-11",
+    descripcion:
+      "Se diseno el material de capacitacion sobre la herramienta de seguimiento a indicadores, preparando presentacion y guia de usuario.",
+    evidenciaIds: ["evi-010"],
+    creadoEn: "2025-02-11T10:30:00",
+  },
+  {
+    id: "apo-012",
+    actividadId: "act-006",
+    fecha: "2025-02-19",
+    descripcion:
+      "Se realizo la jornada de capacitacion dirigida a 15 funcionarios del area sobre el uso de la herramienta de seguimiento a indicadores.",
+    evidenciaIds: ["evi-011", "evi-012"],
+    creadoEn: "2025-02-19T09:00:00",
+  },
+]
+
+export const evidenciasIniciales: Evidencia[] = [
+  {
+    id: "evi-001",
+    actividadId: "act-001",
+    nombre: "Diagnostico_Institucional_2025.pdf",
+    tipo: "pdf",
+    tamaño: 2450000,
+    url: "",
+    creadoEn: "2025-02-05T10:30:00",
+  },
+  {
+    id: "evi-002",
+    actividadId: "act-001",
+    nombre: "Matriz_Priorizacion_v1.pdf",
+    tipo: "pdf",
+    tamaño: 1830000,
+    url: "",
+    creadoEn: "2025-02-12T14:00:00",
+  },
+  {
+    id: "evi-003",
+    actividadId: "act-002",
+    nombre: "Consolidado_Indicadores_Enero.pdf",
+    tipo: "pdf",
+    tamaño: 980000,
+    url: "",
+    creadoEn: "2025-02-07T09:15:00",
+  },
+  {
+    id: "evi-004",
+    actividadId: "act-003",
+    nombre: "Informe_Tecnico_Febrero.pdf",
+    tipo: "pdf",
+    tamaño: 3200000,
+    url: "",
+    creadoEn: "2025-02-20T11:00:00",
+  },
+  {
+    id: "evi-005",
+    actividadId: "act-003",
+    nombre: "Grafico_Avance_Metas.png",
+    tipo: "imagen",
+    tamaño: 450000,
+    url: "",
+    creadoEn: "2025-02-20T11:05:00",
+  },
+  {
+    id: "evi-006",
+    actividadId: "act-004",
+    nombre: "Acta_Reunion_SecretariaGeneral.pdf",
+    tipo: "pdf",
+    tamaño: 780000,
+    url: "",
+    creadoEn: "2025-02-03T08:30:00",
+  },
+  {
+    id: "evi-007",
+    actividadId: "act-004",
+    nombre: "Listado_Asistencia_MesaGobiernoDigital.pdf",
+    tipo: "pdf",
+    tamaño: 520000,
+    url: "",
+    creadoEn: "2025-02-10T10:00:00",
+  },
+  {
+    id: "evi-008",
+    actividadId: "act-005",
+    nombre: "Matriz_Documentos_Pendientes.pdf",
+    tipo: "pdf",
+    tamaño: 340000,
+    url: "",
+    creadoEn: "2025-02-06T09:00:00",
+  },
+  {
+    id: "evi-009",
+    actividadId: "act-005",
+    nombre: "Procedimiento_GestionDocumental_v2.pdf",
+    tipo: "documento",
+    tamaño: 1560000,
+    url: "",
+    creadoEn: "2025-02-18T15:00:00",
+  },
+  {
+    id: "evi-010",
+    actividadId: "act-006",
+    nombre: "Presentacion_Capacitacion_Indicadores.pdf",
+    tipo: "pdf",
+    tamaño: 4200000,
+    url: "",
+    creadoEn: "2025-02-11T10:30:00",
+  },
+  {
+    id: "evi-011",
+    actividadId: "act-006",
+    nombre: "Foto_Capacitacion_01.jpg",
+    tipo: "imagen",
+    tamaño: 890000,
+    url: "",
+    creadoEn: "2025-02-19T09:00:00",
+  },
+  {
+    id: "evi-012",
+    actividadId: "act-006",
+    nombre: "Listado_Asistencia_Capacitacion.pdf",
+    tipo: "pdf",
+    tamaño: 230000,
+    url: "",
+    creadoEn: "2025-02-19T09:10:00",
+  },
+]
+
+export const informesIniciales: Informe[] = [
+  {
+    id: "inf-001",
+    contratoId: "cont-001",
+    periodo: "Febrero 2025",
+    fechaInicio: "2025-02-01",
+    fechaFin: "2025-02-28",
+    fechaGeneracion: "2025-02-28T10:00:00",
+    estado: "enviado",
+    plantilla: "clasica",
+  },
+]
+
+export const configuracionInicial: Configuracion = {
+  contratoId: "cont-001",
+  frecuenciaInforme: "mensual",
+  diaGeneracion: 28,
+  periodoActualInicio: "2025-03-01",
+  periodoActualFin: "2025-03-31",
+  plantillaSeleccionada: "clasica",
+  usuario: {
+    nombre: "Carlos Andres Rivera",
+    email: "carlos.rivera@correo.com",
+    notificaciones: true,
+  },
+}
