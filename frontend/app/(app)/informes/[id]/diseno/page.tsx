@@ -479,7 +479,6 @@ export default function DisenoInformePage() {
           </div>
         </div>
 
-        {/* Modal de configuración */}
         {modalConfig && (
           <ModalConfigSeccion
             seccion={modalConfig}
