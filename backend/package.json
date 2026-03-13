@@ -2,8 +2,8 @@
   "name": "backend",
   "version": "1.0.0",
   "scripts": {
-    "dev": "nodemon src/server.ts",
-"start": "node src/server.js",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
     "build": "tsc",
     "install:dev": "npm install --include=dev"
   },
