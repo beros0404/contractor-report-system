@@ -38,8 +38,11 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Conectar a MongoDB
-connectDB();
+connectDB().then(() => {
+  console.log('✅ Conectado a MongoDB');
+}).catch(err => {
+  console.error('❌ Error conectando a MongoDB:', err);
+});
 
 // Rutas
 app.use('/api/activities', activityRoutes);
@@ -59,4 +62,5 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`🌐 CORS permitido para:`, allowedOrigins);
 });
