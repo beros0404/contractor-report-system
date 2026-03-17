@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose'; // Agregado
 import { connectDB } from './database/connection';
 import activityRoutes from './api/activities/routes';
 import contractRoutes from './api/contracts/routes';
@@ -44,6 +45,16 @@ connectDB().then(() => {
   console.error('❌ Error conectando a MongoDB:', err);
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
 // Rutas
 app.use('/api/activities', activityRoutes);
 app.use('/api/contracts', contractRoutes);
@@ -62,5 +73,5 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
-    console.log(`🌐 CORS permitido para:`, allowedOrigins);
+  console.log(`🌐 CORS permitido para:`, allowedOrigins);
 });
