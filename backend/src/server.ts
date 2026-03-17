@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://tu-frontend.vercel.app', 
+  'https://contractor-report-system.vercel.app',
   process.env.FRONTEND_URL || ''
 ].filter(Boolean);
 
