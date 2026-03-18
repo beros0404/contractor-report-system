@@ -93,6 +93,15 @@ app.get('/api/health', (req, res) => {
 });
 
 // Conectar a MongoDB
+console.log('🔄 Intentando conectar a MongoDB...');
+console.log('URI existe:', !!process.env.MONGODB_URI);
+
+(0, connection_1.connectDB)().then(() => {
+  console.log('✅ Conexión a MongoDB exitosa');
+}).catch(err => {
+  console.error('❌ Error conectando a MongoDB:', err.message);
+  process.exit(1);
+});
 (async () => {
     try {
         await (0, connection_1.connectDB)();
