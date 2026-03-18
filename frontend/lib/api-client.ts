@@ -6,7 +6,7 @@ export const apiClient = {
   // ========== CONTRATOS (CRUD COMPLETO) ==========
   async getContratos() {
     try {
-      const res = await fetch(`${API_URL}/contracts`);
+      const res = await fetch(`${API_URL}/api/contracts`);
       if (!res.ok) throw new Error('Error al cargar contratos');
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -18,7 +18,7 @@ export const apiClient = {
 
   async getContrato(id: string) {
     try {
-      const res = await fetch(`${API_URL}/contracts/${id}`);
+      const res = await fetch(`${API_URL}/api/contracts/${id}`);
       if (!res.ok) throw new Error('Error al cargar contrato');
       return res.json();
     } catch (error) {
@@ -35,7 +35,7 @@ async getContratosPorUsuario(usuarioId: string) {
       throw new Error('usuarioId es requerido');
     }
     
-    const res = await fetch(`${API_URL}/contracts?usuarioId=${encodeURIComponent(usuarioId)}`);
+    const res = await fetch(`${API_URL}/api/contracts?usuarioId=${encodeURIComponent(usuarioId)}`);
     
     console.log('📡 Response status:', res.status);
     
@@ -57,7 +57,7 @@ async getContratosPorUsuario(usuarioId: string) {
 
   async createContrato(contrato: any) {
     try {
-      const res = await fetch(`${API_URL}/contracts`, {
+      const res = await fetch(`${API_URL}/api/contracts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(contrato)
@@ -72,7 +72,7 @@ async getContratosPorUsuario(usuarioId: string) {
 
   async updateContrato(id: string, contrato: any) {
     try {
-      const res = await fetch(`${API_URL}/contracts/${id}`, {
+      const res = await fetch(`${API_URL}/api/contracts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,7 +90,7 @@ async getContratosPorUsuario(usuarioId: string) {
 
   async deleteContrato(id: string) {
     try {
-      const res = await fetch(`${API_URL}/contracts/${id}`, {
+      const res = await fetch(`${API_URL}/api/contracts/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Error al eliminar contrato');

@@ -6,25 +6,26 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Agregar rewrites para redirigir las llamadas al backend
+  // Configuración de rewrites para redirigir todas las llamadas al backend
   async rewrites() {
     return [
       {
-        source: '/api/backend/:path*',
+        source: '/api/:path*',
         destination: 'https://contractor-report-system.onrender.com/api/:path*',
       },
+      // Redirigir rutas sin /api a /api (solución para tu caso específico)
+      {
+        source: '/:path(^(?!api|_next|static|favicon.ico).*)',
+        destination: 'https://contractor-report-system.onrender.com/api/:path',
+      },
+      // Específicamente para auth
       {
         source: '/auth/:path*',
         destination: 'https://contractor-report-system.onrender.com/api/auth/:path*',
       },
-      // Específicamente para google auth
-      {
-        source: '/api/auth/google/:path*',
-        destination: 'https://contractor-report-system.onrender.com/api/auth/google/:path*',
-      },
     ];
   },
-  // Headers CORS adicionales si es necesario
+  // Headers CORS
   async headers() {
     return [
       {
