@@ -2,7 +2,6 @@
 /node_modules
 
 # production
-/dist
 /build
 
 # env files
@@ -32,4 +31,3 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 coverage
 logs
 node_modules
-dist

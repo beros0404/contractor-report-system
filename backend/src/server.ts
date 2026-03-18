@@ -16,34 +16,19 @@ import informePdfRoutes from './api/informes/pdf.routes';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configuración CORS para producción - MUY IMPORTANTE
 const allowedOrigins = [
   'http://localhost:3000',
   'https://contractor-report-system.vercel.app',
   'https://contractor-report-system.onrender.com'
 ].filter(Boolean);
 
-// Configuración detallada de CORS
 app.use(cors({
-  origin: function(origin, callback) {
-    // Permitir requests sin origin (como apps móviles, postman, o mismo servidor)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = `La política CORS para este sitio no permite acceso desde el origen: ${origin}`;
-      console.warn(`🚫 CORS bloqueado para origen: ${origin}`);
-      return callback(new Error(msg), false);
-    }
-    
-    console.log(`✅ CORS permitido para origen: ${origin}`);
-    return callback(null, true);
-  },
+  origin: ['https://contractor-report-system.vercel.app', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Middleware para logging de peticiones
 app.use((req, res, next) => {
   console.log(`📡 ${req.method} ${req.url} - Origen: ${req.headers.origin || 'directo'}`);
   next();
@@ -51,7 +36,6 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Ruta de health check mejorada
 app.get('/api/health', (req, res) => {
   console.log('✅ Health check llamado desde:', req.headers.origin || 'directo');
   res.json({ 
@@ -66,7 +50,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Ruta raíz
 app.get('/', (req, res) => {
   res.json({ 
     message: 'API de Contractor Report System',
