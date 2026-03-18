@@ -73,7 +73,7 @@ export function GeneralTab({ onSave }: GeneralTabProps) {
       // Verificar Calendar
       try {
         console.log('📡 Verificando Calendar...')
-        const calendarRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/status?usuarioId=${usuarioId}`)
+        const calendarRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/status?usuarioId=${usuarioId}`)
         console.log('📡 Calendar response status:', calendarRes.status)
         
         if (calendarRes.ok) {

@@ -49,7 +49,7 @@ export default function ConfiguracionInicialPage() {
     if (!user?.id) return
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/status?usuarioId=${user.id}`)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/status?usuarioId=${user.id}`)
       const data = await res.json()
       setCalendarioConectado(data.conectado || false)
     } catch (error) {
