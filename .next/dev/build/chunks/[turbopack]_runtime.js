@@ -1,24 +1,13 @@
 const RUNTIME_PUBLIC_PATH = "chunks/[turbopack]_runtime.js";
 const RELATIVE_ROOT_PATH = "../../../..";
 const ASSET_PREFIX = "/";
-/**
- * This file contains runtime types and functions that are shared between all
- * TurboPack ECMAScript runtimes.
- *
- * It will be prepended to the runtime code of each runtime.
- */ /* eslint-disable @typescript-eslint/no-unused-vars */ /// <reference path="./runtime-types.d.ts" />
+
 const REEXPORTED_OBJECTS = new WeakMap();
 /**
  * Constructs the `__turbopack_context__` object for a module.
  */ function Context(module, exports) {
     this.m = module;
-    // We need to store this here instead of accessing it from the module object to:
-    // 1. Make it available to factories directly, since we rewrite `this` to
-    //    `__turbopack_context__.e` in CJS modules.
-    // 2. Support async modules which rewrite `module.exports` to a promise, so we
-    //    can still access the original exports object from functions like
-    //    `esmExport`
-    // Ideally we could find a new approach for async modules and drop this property altogether.
+
     this.e = exports;
 }
 const contextPrototype = Context.prototype;

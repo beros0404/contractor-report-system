@@ -57,16 +57,11 @@ const toPath = (file)=>{
 const fromPath = (path)=>{
     return (0, __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["join"])(/* turbopackIgnore: true */ contextDir, __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["sep"] !== '/' ? path.replaceAll('/', __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["sep"]) : path);
 };
-// Patch process.env to track which env vars are read
 const originalEnv = process.env;
 const readEnvVars = new Set();
 process.env = new Proxy(originalEnv, {
     get (target, prop) {
         if (typeof prop === 'string') {
-            // We register the env var as dependency on the
-            // current transform and all future transforms
-            // since the env var might be cached in module scope
-            // and influence them all
             readEnvVars.add(prop);
         }
         return Reflect.get(target, prop);
@@ -88,9 +83,7 @@ __turbopack_context__.s([
     "init",
     ()=>init
 ]);
-// @ts-ignore
 var __TURBOPACK__imported__module__$5b$project$5d2f$Downloads$2f$contractor$2d$report$2d$system$2f$node_modules$2f$postcss$2f$lib$2f$postcss$2e$mjs__$5b$postcss$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Downloads/contractor-report-system/node_modules/postcss/lib/postcss.mjs [postcss] (ecmascript)");
-// @ts-ignore
 var __TURBOPACK__imported__module__$5b$project$5d2f$Downloads$2f$contractor$2d$report$2d$system$2f$postcss$2e$config$2e$mjs__$5b$postcss$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/Downloads/contractor-report-system/postcss.config.mjs [postcss] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$turbopack$2d$node$5d2f$transforms$2f$transforms$2e$ts__$5b$postcss$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[turbopack-node]/transforms/transforms.ts [postcss] (ecmascript)");
 ;
@@ -131,7 +124,7 @@ const init = async (ipc)=>{
             const [arg, options] = plugin;
             let pluginFactory = arg;
             if (typeof pluginFactory === 'string') {
-                pluginFactory = require(/* turbopackIgnore: true */ pluginFactory);
+                pluginFactory = require( pluginFactory);
             }
             if (pluginFactory.default) {
                 pluginFactory = pluginFactory.default;
@@ -203,4 +196,3 @@ async function transform(ipc, cssContent, name, sourceMap) {
 }),
 ];
 
-//# sourceMappingURL=%5Broot-of-the-server%5D__50262f47._.js.map

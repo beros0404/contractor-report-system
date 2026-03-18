@@ -12,7 +12,6 @@ const archiver_1 = __importDefault(require("archiver"));
 const stream_1 = require("stream");
 const router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage() });
-// Función para obtener cliente autenticado de Google Drive
 async function getDriveClient(usuarioId) {
     const usuario = await model_2.Usuario.findOne({ supabaseId: usuarioId });
     if (!usuario?.googleTokens?.access_token) {
@@ -20,7 +19,6 @@ async function getDriveClient(usuarioId) {
     }
     const oauth2Client = new googleapis_1.google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
     oauth2Client.setCredentials(usuario.googleTokens);
-    // Verificar si el token ha expirado
     if (usuario.googleTokens.expiry_date &&
         usuario.googleTokens.expiry_date < Date.now()) {
         try {

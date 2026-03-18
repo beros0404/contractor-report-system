@@ -1,7 +1,6 @@
 module.exports = [
 "[turbopack-node]/globals.ts [postcss] (ecmascript)", ((__turbopack_context__, module, exports) => {
 
-// @ts-ignore
 process.turbopack = {};
 }),
 "[externals]/node:net [external] (node:net, cjs)", ((__turbopack_context__, module, exports) => {
@@ -128,9 +127,6 @@ function parseNode(e) {
 "[turbopack-node]/ipc/error.ts [postcss] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
-// merged from next.js
-// https://github.com/vercel/next.js/blob/e657741b9908cf0044aaef959c0c4defb19ed6d8/packages/next/src/lib/is-error.ts
-// https://github.com/vercel/next.js/blob/e657741b9908cf0044aaef959c0c4defb19ed6d8/packages/next/src/shared/lib/is-plain-object.ts
 __turbopack_context__.s([
     "default",
     ()=>isError,
@@ -145,8 +141,7 @@ function getProperError(err) {
         return err;
     }
     if ("TURBOPACK compile-time truthy", 1) {
-        // Provide a better error message for cases where `throw undefined`
-        // is called in development
+
         if (typeof err === 'undefined') {
             return new Error('`undefined` was thrown instead of a real error');
         }
@@ -280,17 +275,13 @@ function createIpc(port) {
             }
         });
     });
-    // When the socket is closed, this process is no longer needed.
-    // This might happen e. g. when parent process is killed or
-    // node.js pool is garbage collected.
+
     socket.once('close', ()=>{
         process.exit(0);
     });
-    // TODO(lukesandberg): some of the messages being sent are very large and contain lots
-    //  of redundant information.  Consider adding gzip compression to our stream.
+
     function doSend(message) {
         return new Promise((resolve, reject)=>{
-            // Reserve 4 bytes for our length prefix, we will over-write after encoding.
             const packet = Buffer.from('0000' + message, 'utf8');
             packet.writeUInt32BE(packet.length - 4, 0);
             socketWritable.write(packet, (err)=>{
@@ -335,8 +326,7 @@ function createIpc(port) {
                     ...structuredError(error)
                 });
             } catch (err) {
-                // There's nothing we can do about errors that happen after this point, we can't tell anyone
-                // about them.
+
                 console.error('failed to send error back to rust:', err);
                 failed = true;
             }
@@ -351,11 +341,8 @@ process.on('uncaughtException', (err)=>{
     IPC.sendError(err);
 });
 const improveConsole = (name, stream, addStack)=>{
-    // @ts-ignore
     const original = console[name];
-    // @ts-ignore
     const stdio = process[stream];
-    // @ts-ignore
     console[name] = (...args)=>{
         stdio.write(`TURBOPACK_OUTPUT_B\n`);
         original(...args);
@@ -429,7 +416,6 @@ const run = async (moduleFactory)=>{
             return ipc.sendError(error);
         }
     };
-    // Initialize module and send ready message
     let getValue;
     try {
         const module = await moduleFactory();
@@ -442,7 +428,6 @@ const run = async (moduleFactory)=>{
         await ipc.sendReady();
         await ipc.sendError(err);
     }
-    // Queue handling
     let isRunning = false;
     const run = async ()=>{
         while(queue.length > 0){
@@ -460,7 +445,6 @@ const run = async (moduleFactory)=>{
         }
         isRunning = false;
     };
-    // Communication handling
     while(true){
         const msg = await ipc.recv();
         switch(msg.type){
@@ -504,5 +488,3 @@ var __TURBOPACK__imported__module__$5b$turbopack$2d$node$5d2f$ipc$2f$evaluate$2e
 (0, __TURBOPACK__imported__module__$5b$turbopack$2d$node$5d2f$ipc$2f$evaluate$2e$ts__$5b$postcss$5d$__$28$ecmascript$29$__["run"])(()=>__turbopack_context__.A('[turbopack-node]/transforms/postcss.ts { CONFIG => "[project]/Downloads/contractor-report-system/postcss.config.mjs [postcss] (ecmascript)" } [postcss] (ecmascript, async loader)'));
 }),
 ];
-
-//# sourceMappingURL=%5Broot-of-the-server%5D__0fd60a73._.js.map
