@@ -1,3 +1,4 @@
+// app/(app)/informes/[id]/page.tsx
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
@@ -11,7 +12,11 @@ import {
   Loader2,
   FolderOpen,
   ExternalLink,
-  Pen
+  Pen,
+  Edit2,
+  Save,
+  X,
+  Brush
 } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { ReportePreview } from "@/components/reporte-preview"
@@ -21,8 +26,6 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
 import { useContrato } from "@/contexts/contrato-context"
-import { Brush } from "lucide-react"
-
 
 type EstadoInforme = 'borrador' | 'finalizado' | 'enviado'
 
@@ -41,10 +44,20 @@ const estadoBadge: Record<EstadoInforme, { label: string; className: string }> =
   },
 }
 
+const ADMINISTRADORES = [
+  "Mi planilla",
+  "Enlace Operativo",
+  "SOI (Seguridad Operativa de Información)",
+  "Aportes en Línea",
+  "PILA Virtual",
+  "Otro"
+]
+
 export default function InformeDetailPage() {
   const params = useParams()
   const { contratoActivo, usuarioId } = useContrato()
   const [informe, setInforme] = useState<any>(null)
+  const [configuracion, setConfiguracion] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [carpetasActividades, setCarpetasActividades] = useState<Record<string, string>>({})
@@ -53,7 +66,37 @@ export default function InformeDetailPage() {
   const [tipoFirma, setTipoFirma] = useState<'contratista' | 'supervisor'>('contratista')
   const [firmasGuardadas, setFirmasGuardadas] = useState<any[]>([])
 
+  const [numeroPlantillaSocial, setNumeroPlantillaSocial] = useState("")
+  const [administradorPlantilla, setAdministradorPlantilla] = useState("")
+  const [otroAdministrador, setOtroAdministrador] = useState("")
+  const [editandoPlantilla, setEditandoPlantilla] = useState(false)
+
   const informeId = params.id as string
+
+  // Cargar configuración guardada
+  const cargarConfiguracion = useCallback(async () => {
+    if (!contratoActivo || !usuarioId) return
+    
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/configuracion-informe?usuarioId=${usuarioId}&contratoId=${contratoActivo}`
+      )
+      if (res.ok) {
+        const config = await res.json()
+        setConfiguracion(config)
+        console.log('📋 Configuración cargada:', config)
+        
+        // Si hay configuración, aplicar los datos de seguridad social
+        if (config?.seguridadSocial) {
+          setNumeroPlantillaSocial(config.seguridadSocial.numeroPlantilla || "")
+          setAdministradorPlantilla(config.seguridadSocial.administrador || "")
+          setOtroAdministrador(config.seguridadSocial.otroAdministrador || "")
+        }
+      }
+    } catch (error) {
+      console.error("Error cargando configuración:", error)
+    }
+  }, [contratoActivo, usuarioId])
 
   const cargarDatos = useCallback(async () => {
     if (!informeId || !usuarioId) return
@@ -65,12 +108,18 @@ export default function InformeDetailPage() {
       console.log('📋 Actividades:', inf?.contenido?.actividades)
       setInforme(inf)
       
+      if (inf?.contenido?.plantillaSocial) {
+        setNumeroPlantillaSocial(inf.contenido.plantillaSocial.numero || "")
+        setAdministradorPlantilla(inf.contenido.plantillaSocial.administrador || "")
+        setOtroAdministrador(inf.contenido.plantillaSocial.otroAdministrador || "")
+      }
+      
       if (inf?.contenido?.actividades) {
         const carpetas: Record<string, string> = {}
         for (const actividad of inf.contenido.actividades) {
           try {
             const res = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/evidencias/carpeta/${actividad.actividadId}?usuarioId=${usuarioId}`
+              `${process.env.NEXT_PUBLIC_API_URL}/api/evidencias/carpeta/${actividad.actividadId}?usuarioId=${usuarioId}`
             )
             if (res.ok) {
               const data = await res.json()
@@ -92,10 +141,51 @@ export default function InformeDetailPage() {
     }
   }, [informeId, usuarioId])
 
+  // Cargar configuración y datos
+  useEffect(() => {
+    if (informeId && usuarioId && contratoActivo) {
+      cargarConfiguracion()
+      cargarDatos()
+    }
+  }, [informeId, usuarioId, contratoActivo, cargarConfiguracion, cargarDatos])
+
+  const guardarPlantillaSocial = async () => {
+    if (!informe || !usuarioId) return
+    
+    try {
+      setRefreshing(true)
+      
+      const plantillaSocialData = {
+        numero: numeroPlantillaSocial,
+        administrador: administradorPlantilla,
+        otroAdministrador: administradorPlantilla === "Otro" ? otroAdministrador : ""
+      }
+      
+      const updatedInforme = {
+        ...informe,
+        contenido: {
+          ...informe.contenido,
+          plantillaSocial: plantillaSocialData
+        }
+      }
+      
+      await apiClient.updateInforme(informe.id, updatedInforme, usuarioId)
+      setInforme(updatedInforme)
+      setEditandoPlantilla(false)
+      toast.success("Datos de plantilla social guardados")
+      
+    } catch (error) {
+      console.error("Error guardando plantilla social:", error)
+      toast.error("Error al guardar los datos")
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   const cargarFirmasGuardadas = async () => {
     if (!usuarioId) return
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/firmas?usuarioId=${usuarioId}&tipo=${tipoFirma}`)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/firmas?usuarioId=${usuarioId}&tipo=${tipoFirma}`)
       if (res.ok) {
         const data = await res.json()
         setFirmasGuardadas(data)
@@ -111,9 +201,6 @@ export default function InformeDetailPage() {
         console.error('❌ Falta informe o usuarioId');
         return;
       }
-  
-      console.log('📝 Guardando firma para:', tipoFirma);
-      console.log('📦 firmaData:', firmaData);
   
       const firmaObj: any = {
         nombre: tipoFirma === 'contratista' 
@@ -143,15 +230,11 @@ export default function InformeDetailPage() {
           }
         }
       };
-  
-      console.log('📦 Informe actualizado:', JSON.stringify(updatedInforme, null, 2));
       
       const result = await apiClient.updateInforme(informe.id, updatedInforme, usuarioId);
-      console.log('✅ Informe guardado:', result);
       
       if (firmaData.guardar && firmaData.nombre) {
-        console.log('📝 Guardando firma en biblioteca...');
-        const saveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/firmas`, {
+        const saveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/firmas`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -164,8 +247,6 @@ export default function InformeDetailPage() {
         
         if (saveRes.ok) {
           const firmaGuardada = await saveRes.json();
-          console.log('✅ Firma guardada en biblioteca:', firmaGuardada);
-          
           updatedInforme.contenido.firmas[tipoFirma].firmaGuardadaId = firmaGuardada.id;
           await apiClient.updateInforme(informe.id, updatedInforme, usuarioId);
         }
@@ -181,12 +262,6 @@ export default function InformeDetailPage() {
     }
   };
 
-  useEffect(() => {
-    if (informeId && usuarioId) {
-      cargarDatos()
-    }
-  }, [informeId, usuarioId, cargarDatos])
-
   const actualizarEstado = async (nuevoEstado: EstadoInforme) => {
     if (!informe || !usuarioId) return
 
@@ -194,14 +269,14 @@ export default function InformeDetailPage() {
       setRefreshing(true)
       
       if (nuevoEstado === 'finalizado') {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/informes/${informe.id}/finalizar?usuarioId=${usuarioId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/informes/${informe.id}/finalizar?usuarioId=${usuarioId}`, {
           method: 'PUT'
         })
         if (!res.ok) throw new Error('Error al finalizar informe')
         const data = await res.json()
         setInforme(data)
       } else if (nuevoEstado === 'enviado') {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/informes/${informe.id}/enviar?usuarioId=${usuarioId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/informes/${informe.id}/enviar?usuarioId=${usuarioId}`, {
           method: 'PUT'
         })
         if (!res.ok) throw new Error('Error al enviar informe')
@@ -232,15 +307,11 @@ export default function InformeDetailPage() {
       return;
     }
     
-    console.log('📊 INFORME COMPLETO:', informe);
-    console.log('📊 ACTIVIDADES:', informe.contenido?.actividades);
-    console.log('📊 PRIMERA ACTIVIDAD:', informe.contenido?.actividades?.[0]);
-    
     try {
       toast.info("Generando PDF...");
       
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/informes/${informe.id}/pdf?usuarioId=${usuarioId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/informes/${informe.id}/pdf?usuarioId=${usuarioId}`,
         {
           method: 'GET',
         }
@@ -280,48 +351,47 @@ export default function InformeDetailPage() {
     }
   };
 
-const handleDownloadEvidencias = async () => {
-  if (!informe?.contratoId || !usuarioId) {
-    toast.error("No hay información del contrato");
-    return;
-  }
-  
-  try {
-    toast.info("Preparando descarga de evidencias del contrato...");
-    
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/evidencias/contrato/${informe.contratoId}/zip?usuarioId=${usuarioId}`,
-      {
-        method: 'GET',
-      }
-    );
-    
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('No hay evidencias para este contrato');
-      }
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || 'Error al descargar evidencias');
+  const handleDownloadEvidencias = async () => {
+    if (!informe?.contratoId || !usuarioId) {
+      toast.error("No hay información del contrato");
+      return;
     }
     
-    const blob = await response.blob();
-    
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `evidencias-contrato-${informe.contratoId.substring(0, 8)}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    
-    toast.success("Descarga completada");
-    
-  } catch (error: any) {
-    console.error("Error descargando evidencias:", error);
-    toast.error(error.message || "Error al descargar evidencias");
-  }
-};
+    try {
+      toast.info("Preparando descarga de evidencias del contrato...");
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/evidencias/contrato/${informe.contratoId}/zip?usuarioId=${usuarioId}`,
+        {
+          method: 'GET',
+        }
+      );
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('No hay evidencias para este contrato');
+        }
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Error al descargar evidencias');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `evidencias-contrato-${informe.contratoId.substring(0, 8)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Descarga completada");
+      
+    } catch (error: any) {
+      console.error("Error descargando evidencias:", error);
+      toast.error(error.message || "Error al descargar evidencias");
+    }
+  };
 
   if (loading) {
     return (
@@ -433,15 +503,122 @@ const handleDownloadEvidencias = async () => {
           Descargar Evidencias
         </button>
         <Link
-  href={`/informes/${informe.id}/diseno`}
-  className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
->
-  <Brush className="h-4 w-4" />
-  Diseño de informe
-</Link>
+          href={`/informes/${informe.id}/diseno`}
+          className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          <Brush className="h-4 w-4" />
+          Diseño de informe
+        </Link>
       </div>
 
-      {/* Botón de firma - Solo contratista por ahora */}
+      {/* Plantilla Social */}
+      <div className="bg-card border border-border rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-md font-semibold text-foreground">Plantilla Social</h3>
+          {!editandoPlantilla && (
+            <button
+              onClick={() => setEditandoPlantilla(true)}
+              disabled={refreshing}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Edit2 className="h-4 w-4" />
+              Editar
+            </button>
+          )}
+        </div>
+        
+        {editandoPlantilla ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                Número de plantilla social
+              </label>
+              <input
+                type="text"
+                value={numeroPlantillaSocial}
+                onChange={(e) => setNumeroPlantillaSocial(e.target.value)}
+                placeholder="Ej: 123456789-0"
+                className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                Administrador de plantilla
+              </label>
+              <select
+                value={administradorPlantilla}
+                onChange={(e) => setAdministradorPlantilla(e.target.value)}
+                className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">Seleccionar administrador</option>
+                {ADMINISTRADORES.map((admin) => (
+                  <option key={admin} value={admin}>
+                    {admin}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {administradorPlantilla === "Otro" && (
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Especificar administrador
+                </label>
+                <input
+                  type="text"
+                  value={otroAdministrador}
+                  onChange={(e) => setOtroAdministrador(e.target.value)}
+                  placeholder="Nombre del administrador"
+                  className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+            )}
+            
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={guardarPlantillaSocial}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Save className="h-4 w-4" />
+                Guardar
+              </button>
+              <button
+                onClick={() => {
+                  setEditandoPlantilla(false)
+                  setNumeroPlantillaSocial(informe?.contenido?.plantillaSocial?.numero || "")
+                  setAdministradorPlantilla(informe?.contenido?.plantillaSocial?.administrador || "")
+                  setOtroAdministrador(informe?.contenido?.plantillaSocial?.otroAdministrador || "")
+                }}
+                className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground w-40">Número:</span>
+              <span className="font-medium text-foreground">
+                {numeroPlantillaSocial || <span className="text-muted-foreground italic">No especificado</span>}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground w-40">Administrador:</span>
+              <span className="font-medium text-foreground">
+                {administradorPlantilla === "Otro" && otroAdministrador 
+                  ? otroAdministrador 
+                  : administradorPlantilla || <span className="text-muted-foreground italic">No especificado</span>}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Firma del contratista */}
       {!informe.contenido?.firmas?.contratista?.firmaDigital && (
         <div className="flex items-center gap-2 mt-2">
           <button
@@ -458,7 +635,6 @@ const handleDownloadEvidencias = async () => {
         </div>
       )}
 
-      {/* Mostrar firma ya aplicada */}
       {informe.contenido?.firmas?.contratista?.firmaDigital && (
         <div className="mt-2 p-4 bg-muted/30 rounded-lg">
           <p className="text-sm font-medium text-foreground mb-2">Firma del contratista aplicada:</p>
@@ -477,14 +653,14 @@ const handleDownloadEvidencias = async () => {
         </div>
       )}
 
-      {/* Reporte Preview con enlaces a carpetas */}
+      {/* Reporte Preview con la configuración aplicada */}
       <div className="space-y-4">
         <ReportePreview 
           informe={informe} 
           carpetasActividades={carpetasActividades}
+          configuracion={configuracion}
         />
         
-        {/* Enlaces a carpetas de Drive por actividad */}
         {Object.keys(carpetasActividades).length > 0 && (
           <div className="mt-6 p-4 bg-card border border-border rounded-lg">
             <h3 className="text-sm font-semibold text-card-foreground mb-3">

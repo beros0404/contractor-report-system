@@ -1,3 +1,4 @@
+// components/reporte-preview.tsx
 "use client"
 
 import { useState } from "react"
@@ -12,14 +13,43 @@ interface ReportePreviewProps {
   carpetasActividades?: Record<string, string>
   usuarioId?: string
   onResumenEditado?: (actividadId: string, nuevoResumen: string) => void
+  configuracion?: any // Nueva prop para la configuración
 }
 
-export function ReportePreview({ informe, carpetasActividades, usuarioId, onResumenEditado }: ReportePreviewProps) {
+export function ReportePreview({ 
+  informe, 
+  carpetasActividades, 
+  usuarioId, 
+  onResumenEditado,
+  configuracion 
+}: ReportePreviewProps) {
   const [editandoActividad, setEditandoActividad] = useState<string | null>(null)
   const [resumenEditado, setResumenEditado] = useState("")
   const [regenerando, setRegenerando] = useState<string | null>(null)
 
   const { contenido, periodo } = informe
+  
+  // Usar la configuración si existe, si no usar los valores por defecto del informe
+  const dependenciaContratante = configuracion?.dependenciaContratante || 
+    contenido.contrato?.dependenciaContratante || 
+    "OFICINA UNIDAD ESTRATEGICA DE NEGOCIOS ITM"
+  
+  const seguridadSocial = configuracion?.seguridadSocial || contenido.plantillaSocial || {}
+  
+  // Obtener la entidad del contrato para el supervisor
+  const entidad = contenido.contrato?.entidad || ""
+  
+  // Para las firmas, usar los valores del contrato
+  const contratistaNombre = contenido.contrato?.contratistaNombre || "No especificado"
+  const contratistaCedula = contenido.contrato?.contratistaCedula || "No especificada"
+  const supervisorNombre = contenido.contrato?.supervisorNombre || "No especificado"
+  const supervisorCargo = contenido.contrato?.supervisorCargo || ""
+  const lugarFirma = contenido.contrato?.lugarFirma || "Rionegro"
+  
+  // Obtener los campos visibles de la configuración para determinar qué mostrar
+  const camposVisibles = configuracion?.campos?.filter((c: any) => c.visible && c.zona === "encabezado") || []
+  const columnas = configuracion?.columnas || 2
+  const gridCls = columnas === 2 ? "grid grid-cols-2 gap-3" : "grid grid-cols-1 gap-3"
   
   const formatearFecha = (fecha: string) => {
     if (!fecha) return 'Fecha no disponible'
@@ -113,6 +143,40 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
     }
   }
 
+  // Función para obtener el valor de un campo según la configuración
+  const getCampoValue = (campoId: string): string => {
+    switch(campoId) {
+      case 'contratista':
+        return contratistaNombre
+      case 'numero':
+        return contenido.contrato?.numero || "No especificado"
+      case 'entidad':
+        return contenido.contrato?.entidad || "No especificado"
+      case 'dependencia':
+        return contenido.contrato?.dependenciaContratante || ""
+      case 'fechaInicio':
+        return formatearFecha(contenido.contrato?.fechaInicio)
+      case 'fechaFin':
+        return formatearFecha(contenido.contrato?.fechaFin)
+      case 'objeto':
+        return contenido.contrato?.objeto || "No especificado"
+      case 'valor':
+        return formatearValor(contenido.contrato?.valor)
+      case 'supervisor':
+        return supervisorNombre
+      case 'supervisorCargo':
+        return supervisorCargo
+      case 'contratistaCedula':
+        return contratistaCedula
+      case 'contratistaProfesion':
+        return contenido.contrato?.contratistaProfesion || ""
+      case 'lugarFirma':
+        return lugarFirma
+      default:
+        return ""
+    }
+  }
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 max-w-4xl mx-auto">
       {/* Encabezado */}
@@ -121,46 +185,51 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
           INFORME DE EJECUCIÓN {periodo?.tipo === 'mensual' ? 'MENSUAL' : 'PARCIAL'}
         </h1>
         <p className="text-sm text-muted-foreground">
-          OFICINA UNIDAD ESTRATEGICA DE NEGOCIOS ITM
+          {dependenciaContratante}
         </p>
       </div>
 
-      {/* Información del Contrato */}
+      {/* Información del Contrato - Usando la configuración */}
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4">Información del Contrato</h2>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">NOMBRE DEL CONTRATISTA</p>
-            <p className="font-medium">{contenido.contrato?.contratistaNombre || 'No especificado'}</p>
+        <div className={gridCls}>
+          {camposVisibles.map((campo: any) => (
+            <div key={campo.id} className={`${campo.tipo === "textarea" && columnas === 2 ? "col-span-2" : ""}`}>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">{campo.label}</p>
+              <p className="text-sm font-medium mt-0.5">{getCampoValue(campo.id) || "—"}</p>
+            </div>
+          ))}
+        </div>
+        
+        {/* Bloques de texto del encabezado */}
+        {configuracion?.bloquesTexto?.filter((b: any) => b.zona === "encabezado").map((bloque: any) => (
+          <div key={bloque.id} className="mt-4">
+            {bloque.titulo && <p className="text-sm font-semibold mb-1">{bloque.titulo}</p>}
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{bloque.descripcion}</p>
           </div>
-          <div>
-            <p className="text-muted-foreground">NÚMERO DEL CONTRATO</p>
-            <p className="font-medium">{contenido.contrato?.numero || 'No especificado'}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">FECHA DE INICIO</p>
-            <p className="font-medium">{formatearFecha(contenido.contrato?.fechaInicio)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">FECHA DE FIN</p>
-            <p className="font-medium">{formatearFecha(contenido.contrato?.fechaFin)}</p>
-          </div>
-          <div className="col-span-2">
-            <p className="text-muted-foreground">OBJETO</p>
-            <p className="font-medium text-sm">{contenido.contrato?.objeto}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">VALOR DEL CONTRATO</p>
-            <p className="font-medium">
-              {formatearValor(contenido.contrato?.valor)}
-            </p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">SUPERVISOR ITM</p>
-            <p className="font-medium">{contenido.contrato?.supervisorNombre || 'No especificado'}</p>
+        ))}
+      </div>
+
+      {/* Seguridad Social */}
+      {seguridadSocial.numeroPlantilla && (
+        <div className="mb-8 p-4 bg-muted/20 rounded-lg border border-border">
+          <h2 className="text-md font-semibold mb-3">Seguridad Social</h2>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Número de plantilla social</p>
+              <p className="font-medium">{seguridadSocial.numeroPlantilla}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Administrador de plantilla</p>
+              <p className="font-medium">
+                {seguridadSocial.administrador === "Otro" && seguridadSocial.otroAdministrador
+                  ? seguridadSocial.otroAdministrador
+                  : seguridadSocial.administrador || "—"}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Período ejecutado */}
       <div className="mb-8">
@@ -190,7 +259,6 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
                 return (
                   <tr key={idx} className="hover:bg-accent/50">
                     <td className="border border-border p-2 align-top">
-                      {/* ✅ SOLO MOSTRAR DESCRIPCIÓN, SIN TÍTULO */}
                       <p className="text-sm">{act.descripcion || 'Sin descripción'}</p>
                     </td>
                     <td className="border border-border p-2 align-top">
@@ -220,10 +288,10 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
                         </div>
                       ) : (
                         <div className="group relative">
-                          <p className="text-sm whitespace-pre-wrap">{act.resumenAportes}</p>
+                          <p className="text-sm whitespace-pre-wrap">{act.resumenAportes || "—"}</p>
                           <div className="absolute top-0 right-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
-                              onClick={() => handleEditResumen(actividadId, act.resumenAportes)}
+                              onClick={() => handleEditResumen(actividadId, act.resumenAportes || "")}
                               className="p-1 bg-card rounded shadow hover:bg-accent"
                               title="Editar resumen"
                             >
@@ -247,7 +315,6 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
                     </td>
                     <td className="border border-border p-2 align-top">
                       <div className="space-y-2">
-                        {/* Enlace a la carpeta de Drive si existe */}
                         {carpetasActividades && actividadId && carpetasActividades[actividadId] && (
                           <a
                             href={carpetasActividades[actividadId]}
@@ -260,7 +327,6 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
                           </a>
                         )}
                         
-                        {/* Lista de evidencias */}
                         {act.evidencias && act.evidencias.length > 0 ? (
                           <ul className="space-y-2">
                             {act.evidencias.map((ev: any, i: number) => (
@@ -344,9 +410,9 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
             ) : (
               <p className="text-sm font-medium mb-8">_____________________</p>
             )}
-            <p className="font-medium">{contenido.contrato?.contratistaNombre || 'Nombre del contratista'}</p>
+            <p className="font-medium">{contratistaNombre}</p>
             <p className="text-sm text-muted-foreground">
-              C.C. {contenido.contrato?.contratistaCedula || '__________'}
+              C.C. {contratistaCedula}
             </p>
             <p className="text-xs text-muted-foreground mt-4">
               Firma del Contratista
@@ -367,19 +433,19 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
             ) : (
               <p className="text-sm font-medium mb-8">_____________________</p>
             )}
-            <p className="font-medium">{contenido.contrato?.supervisorNombre || 'Nombre del supervisor'}</p>
-            <p className="text-sm text-muted-foreground">
-              {contenido.contrato?.supervisorCargo || 'Supervisor'}
-            </p>
+            <p className="font-medium">{supervisorNombre}</p>
+            {supervisorCargo && (
+              <p className="text-sm text-muted-foreground">{supervisorCargo}</p>
+            )}
             <p className="text-xs text-muted-foreground mt-4">
               Firma del Supervisor
             </p>
           </div>
         </div>
         <p className="text-center text-sm text-muted-foreground mt-8">
-    Para constancia se firma en {contenido.contrato?.lugarFirma || 'Rionegro'} a los {periodo?.fechaFin ? format(new Date(periodo.fechaFin), "d") : '__'} días del mes de {periodo?.fechaFin ? format(new Date(periodo.fechaFin), "MMMM 'de' yyyy", { locale: es }) : '__________'}.     
-    </p>
-     </div>
+          Para constancia se firma en {lugarFirma} a los {periodo?.fechaFin ? format(new Date(periodo.fechaFin), "d") : '__'} días del mes de {periodo?.fechaFin ? format(new Date(periodo.fechaFin), "MMMM 'de' yyyy", { locale: es }) : '__________'}.     
+        </p>
+      </div>
     </div>
   )
 }

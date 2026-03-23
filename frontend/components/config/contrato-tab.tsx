@@ -15,6 +15,7 @@ interface Contrato {
   id?: string
   numero: string
   entidad: string
+  dependenciaContratante: string  
   objeto: string
   fechaInicio: string
   fechaFin: string
@@ -24,9 +25,21 @@ interface Contrato {
   contratistaProfesion: string
   supervisorNombre: string
   supervisorCargo: string
+  numeroPlantillaSocial: string
+  administradorPlantilla: string
+  otroAdministradorPlantilla: string
   lugarFirma?: string
   fechaFirma?: string
 }
+
+const ADMINISTRADORES = [
+  "Mi planilla",
+  "Enlace Operativo",
+  "SOI (Seguridad Operativa de Información)",
+  "Aportes en Línea",
+  "PILA Virtual",
+  "Otro"
+]
 
 export function ContratoTab({ onSave }: ContratoTabProps) {
   const router = useRouter()
@@ -39,6 +52,7 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
   const [form, setForm] = useState<Contrato>({
     numero: "",
     entidad: "",
+    dependenciaContratante: "",
     objeto: "",
     fechaInicio: "",
     fechaFin: "",
@@ -48,6 +62,9 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
     contratistaProfesion: "",
     supervisorNombre: "",
     supervisorCargo: "",
+    numeroPlantillaSocial: "",
+    administradorPlantilla: "",
+    otroAdministradorPlantilla: "",
     lugarFirma: "Rionegro",
   })
 
@@ -69,6 +86,7 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
       setForm({
         numero: data.numero || "",
         entidad: data.entidad || "",
+        dependenciaContratante: data.dependenciaContratante || "",
         objeto: data.objeto || "",
         fechaInicio: data.fechaInicio ? data.fechaInicio.split('T')[0] : "",
         fechaFin: data.fechaFin ? data.fechaFin.split('T')[0] : "",
@@ -78,6 +96,9 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
         contratistaProfesion: data.contratistaProfesion || "",
         supervisorNombre: data.supervisorNombre || "",
         supervisorCargo: data.supervisorCargo || "",
+        numeroPlantillaSocial: data.numeroPlantillaSocial || "",
+        administradorPlantilla: data.administradorPlantilla || "",
+        otroAdministradorPlantilla: data.otroAdministradorPlantilla || "",
         lugarFirma: data.lugarFirma || "Rionegro"
       })
     } catch (error) {
@@ -228,6 +249,12 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
               onChange={(v) => updateField("entidad", v)}
               required
             />
+            <FieldInput
+              label="Dependencia contratante"
+              value={form.dependenciaContratante}
+              onChange={(v) => updateField("dependenciaContratante", v)}
+              placeholder="Ej: Oficina Unidad Estratégica de Negocios ITM"
+            />
             <div className="sm:col-span-2">
               <FieldTextarea
                 label="Objeto del contrato"
@@ -306,13 +333,14 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
           </div>
         </div>
 
+
         {/* Localización de Firma */}
         <div className="rounded-lg border border-border bg-card p-5">
           <h3 className="mb-4 text-sm font-semibold text-card-foreground">
             Localización de Firma
           </h3>
           <p className="text-xs text-muted-foreground mb-4">
-          Este dato se usará en la línea de firma del informe. La fecha se calculará automáticamente como el último día del mes del informe.
+            Este dato se usará en la línea de firma del informe. La fecha se calculará automáticamente como el último día del mes del informe.
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FieldInput
@@ -330,7 +358,7 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
           </div>
           <div className="mt-4 p-3 bg-muted/30 rounded-lg">
             <p className="text-sm text-foreground">
-            <span className="font-medium">Vista previa:</span> Para constancia se firma en <strong>{form.lugarFirma || "Rionegro"}</strong> a los [días] días del mes de [mes] de [año].
+              <span className="font-medium">Vista previa:</span> Para constancia se firma en <strong>{form.lugarFirma || "Rionegro"}</strong> a los [días] días del mes de [mes] de [año].
             </p>
           </div>
         </div>
