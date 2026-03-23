@@ -3,7 +3,6 @@ import { ConfiguracionInforme } from './model';
 
 const router = Router();
 
-// GET /api/configuracion-informe?usuarioId=xxx&contratoId=xxx
 router.get('/', async (req, res) => {
   try {
     const { usuarioId, contratoId } = req.query;
@@ -17,7 +16,6 @@ router.get('/', async (req, res) => {
       contratoId: contratoId.toString() 
     });
 
-    // Si no existe, crear configuración por defecto
     if (!config) {
       config = new ConfiguracionInforme({
         id: `CONF-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -82,7 +80,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// PUT /api/configuracion-informe/:id
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;

@@ -13,13 +13,11 @@ export default function ConfiguracionInicialPage() {
   const { refreshContratos } = useContrato()
   const router = useRouter()
   
-  // Estados para contratos
   const [contratos, setContratos] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [cargandoContratos, setCargandoContratos] = useState(true)
   const [pasoActual, setPasoActual] = useState(0)
   
-  // Estados para calendario
   const [calendarioConectado, setCalendarioConectado] = useState(false)
   const [conectandoCalendario, setConectandoCalendario] = useState(false)
   const [mostrarOpcionCalendario, setMostrarOpcionCalendario] = useState(false)
@@ -35,7 +33,6 @@ export default function ConfiguracionInicialPage() {
     try {
       const existentes = await apiClient.getContratosPorUsuario(user.id)
       if (existentes.length > 0) {
-        // Ya tiene contratos, redirigir al dashboard
         router.push("/dashboard")
       }
     } catch (error) {
@@ -59,13 +56,11 @@ export default function ConfiguracionInicialPage() {
 
   const conectarCalendario = () => {
     setConectandoCalendario(true)
-    // Redirigir a autenticación de Google
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google/auth?usuarioId=${user?.id}&redirect=/configuracion-inicial`
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/auth?usuarioId=${user?.id}&redirect=/configuracion-inicial`
   }
 
   const saltarCalendario = () => {
     setMostrarOpcionCalendario(false)
-    // Continuar con la creación de contratos
   }
 
   const agregarContrato = () => {
@@ -108,7 +103,6 @@ export default function ConfiguracionInicialPage() {
       return
     }
 
-    // Validar campos requeridos
     for (let i = 0; i < contratos.length; i++) {
       const c = contratos[i]
       if (!c.numero || !c.entidad || !c.objeto || !c.fechaInicio || !c.fechaFin || !c.valor) {
@@ -120,7 +114,6 @@ export default function ConfiguracionInicialPage() {
 
     setLoading(true)
     try {
-      // Crear todos los contratos
       for (const contrato of contratos) {
         await apiClient.createContrato({
           ...contrato,
@@ -131,10 +124,8 @@ export default function ConfiguracionInicialPage() {
       
       toast.success("Contratos creados exitosamente")
       
-      // Refrescar la lista de contratos en el contexto
       await refreshContratos()
       
-      // Redirigir al dashboard
       router.push("/dashboard")
     } catch (error) {
       console.error("Error guardando contratos:", error)
@@ -144,7 +135,6 @@ export default function ConfiguracionInicialPage() {
     }
   }
 
-  // Verificar si venimos de una conexión exitosa de calendario
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('calendar') === 'connected') {

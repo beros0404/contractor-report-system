@@ -12,7 +12,6 @@ const contractSchema = new mongoose.Schema({
   contratistaProfesion: { type: String },
   supervisorNombre: { type: String, required: true },
   supervisorCargo: { type: String },
-  // Solo lugar de firma configurable, la fecha se calcula automáticamente
   lugarFirma: { type: String, default: 'Rionegro' },
   usuarioId: { type: String, required: true, index: true },
   estado: { 

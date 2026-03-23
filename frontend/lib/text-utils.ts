@@ -2,12 +2,12 @@ export function limpiarActividad(texto: string): string {
     if (!texto) return '';
     
     return texto
-      .replace(/^[A-Z][a-z]{2,3}:\s*/, '') // Quitar "Rea:", "For:", "Apo:", "Des:", "Y I:"
-      .replace(/^-\s*/, '') // Quitar guiones
-      .replace(/^\d+\.\s*/, '') // Quitar números con punto
-      .replace(/^[•\-]\s*/, '') // Quitar viñetas
-      .replace(/^[a-z]\)\s*/i, '') // Quitar "a)" etc.
-      .replace(/\s+/g, ' ') // Normalizar espacios
+      .replace(/^[A-Z][a-z]{2,3}:\s*/, '')
+      .replace(/^-\s*/, '') 
+      .replace(/^\d+\.\s*/, '') 
+      .replace(/^[•\-]\s*/, '') 
+      .replace(/^[a-z]\)\s*/i, '')
+      .replace(/\s+/g, ' ') 
       .trim();
   }
 

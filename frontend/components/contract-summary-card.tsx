@@ -27,11 +27,9 @@ interface ContractSummaryCardProps {
 export function ContractSummaryCard({ contrato, configuracion }: ContractSummaryCardProps) {
   console.log('📄 ContractSummaryCard - contrato recibido:', contrato)
   
-  // Usar datos del contrato (priorizar campos específicos)
   const numero = contrato?.numero || contrato?.numeroContrato || "No especificado"
   const entidad = contrato?.entidad || contrato?.entidadContratante || "No especificada"
   
-  // El valor puede estar en 'valor' o 'valorTotalHonorarios'
   const valor = contrato?.valor || contrato?.valorTotalHonorarios || 0
   
   const fechaInicio = contrato?.fechaInicio 
@@ -48,7 +46,6 @@ export function ContractSummaryCard({ contrato, configuracion }: ContractSummary
     minimumFractionDigits: 0 
   }).format(valor)
 
-  // Datos de configuración (opcional)
   const datosReportes = configuracion?.reportes || {}
   const frecuencia = datosReportes?.frecuencia || "Mensual"
   const diaGeneracion = datosReportes?.diaGeneracion || 31

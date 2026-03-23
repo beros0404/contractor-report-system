@@ -13,7 +13,10 @@ const oauth2Client = new google.auth.OAuth2(
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/calendar'
+  'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/drive.file', 
+  'https://www.googleapis.com/auth/drive.appdata'
+
 ];
 
 async function refreshTokenIfNeeded(usuario: IUsuario) {
@@ -74,7 +77,7 @@ router.get('/auth', (req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: SCOPES,
-      prompt: 'consent', // Importante: force consent para pedir nuevos permisos
+      prompt: 'consent',
       state
     });
     
@@ -85,7 +88,35 @@ router.get('/auth', (req, res) => {
     res.status(500).json({ error: 'Error al conectar con Google Calendar' });
   }
 });
-
+router.get('/scopes', async (req, res) => {
+  try {
+    const { usuarioId } = req.query;
+    
+    if (!usuarioId) {
+      return res.status(400).json({ error: 'usuarioId requerido' });
+    }
+    
+    const usuario = await Usuario.findOne({ supabaseId: usuarioId as string });
+    
+    if (!usuario?.googleTokens?.access_token) {
+      return res.json({ hasTokens: false });
+    }
+    
+    const scopes = usuario.googleTokens.scope?.split(' ') || [];
+    
+    res.json({
+      hasTokens: true,
+      scopes,
+      hasCalendarScope: scopes.some(s => s.includes('calendar')),
+      hasDriveScope: scopes.some(s => s.includes('drive')),
+      expiryDate: usuario.googleTokens.expiry_date
+    });
+    
+  } catch (error) {
+    console.error('❌ Error verificando scopes:', error);
+    res.status(500).json({ error: 'Error al verificar scopes' });
+  }
+});
 router.get('/callback', async (req, res) => {
   try {
     const { code, state } = req.query;
@@ -126,19 +157,65 @@ router.get('/events', async (req, res) => {
   try {
     const { usuarioId, timeMin, timeMax } = req.query;
     
+    console.log('🔍 GET /api/auth/google/events - usuarioId:', usuarioId);
+    console.log('📅 timeMin:', timeMin);
+    console.log('📅 timeMax:', timeMax);
+    
     if (!usuarioId) {
       return res.status(400).json({ error: 'usuarioId requerido' });
     }
+
+    const usuario = await Usuario.findOne({ supabaseId: usuarioId as string });
     
-    const calendar = await getAuthenticatedCalendar(usuarioId as string);
+    console.log('📦 Usuario encontrado:', usuario ? 'sí' : 'no');
     
-    const timeMinDate = timeMin 
-      ? new Date(timeMin as string)
-      : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      
-    const timeMaxDate = timeMax
-      ? new Date(timeMax as string)
-      : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999);
+    if (!usuario?.googleTokens?.access_token) {
+      console.log('❌ Usuario no tiene tokens de Google');
+      return res.status(401).json({ error: 'No autorizado', needsAuth: true });
+    }
+
+    console.log('✅ Tokens encontrados, access_token presente');
+    
+    oauth2Client.setCredentials({
+      access_token: usuario.googleTokens.access_token,
+      refresh_token: usuario.googleTokens.refresh_token,
+      expiry_date: usuario.googleTokens.expiry_date
+    });
+    
+    if (usuario.googleTokens.expiry_date && 
+        usuario.googleTokens.expiry_date < Date.now()) {
+      console.log('🔄 Token expirado, refrescando...');
+      try {
+        const { credentials } = await oauth2Client.refreshAccessToken();
+        oauth2Client.setCredentials(credentials);
+        
+        await Usuario.findOneAndUpdate(
+          { supabaseId: usuarioId },
+          { googleTokens: credentials }
+        );
+        console.log('✅ Token refrescado');
+      } catch (refreshError) {
+        console.error('❌ Error refrescando token:', refreshError);
+        return res.status(401).json({ error: 'Token expirado, reconecta Google Calendar' });
+      }
+    }
+    
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+    
+    let timeMinDate: Date;
+    let timeMaxDate: Date;
+    
+    if (timeMin && timeMax) {
+      timeMinDate = new Date(timeMin as string);
+      timeMaxDate = new Date(timeMax as string);
+    } else {
+      const now = new Date();
+      timeMinDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      timeMaxDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+    
+    console.log('📅 Buscando eventos desde:', timeMinDate.toISOString());
+    console.log('📅 hasta:', timeMaxDate.toISOString());
     
     const response = await calendar.events.list({
       calendarId: 'primary',
@@ -149,7 +226,9 @@ router.get('/events', async (req, res) => {
       orderBy: 'startTime'
     });
     
-    const eventos = response.data.items?.map(event => ({
+    console.log(`✅ ${response.data.items?.length || 0} eventos encontrados`);
+    
+    const eventos = (response.data.items || []).map(event => ({
       id: event.id,
       summary: event.summary || 'Sin título',
       description: event.description || '',
@@ -158,16 +237,34 @@ router.get('/events', async (req, res) => {
       location: event.location || '',
       attendees: event.attendees?.map(a => a.email) || [],
       hangoutLink: event.hangoutLink || null
-    })) || [];
+    }));
     
     res.json({ eventos });
     
   } catch (error: any) {
-    console.error('❌ Error obteniendo eventos:', error);
-    const status = error.message === 'No autorizado' ? 401 : 500;
-    res.status(status).json({ 
-      error: error.message,
-      needsAuth: error.message === 'No autorizado'
+    console.error('❌ Error detallado obteniendo eventos:');
+    console.error('   - Mensaje:', error.message);
+    console.error('   - Stack:', error.stack);
+    
+    if (error.response?.data) {
+      console.error('   - Respuesta de Google:', error.response.data);
+    }
+    
+    let statusCode = 500;
+    let errorMessage = 'Error al obtener eventos';
+    
+    if (error.message?.includes('invalid_grant')) {
+      statusCode = 401;
+      errorMessage = 'Token inválido o expirado. Reconecta Google Calendar';
+    } else if (error.message?.includes('access_token')) {
+      statusCode = 401;
+      errorMessage = 'Token de acceso inválido. Reconecta Google Calendar';
+    }
+    
+    res.status(statusCode).json({ 
+      error: errorMessage,
+      details: error.message,
+      needsAuth: statusCode === 401
     });
   }
 });

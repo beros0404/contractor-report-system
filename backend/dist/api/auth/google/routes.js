@@ -1,4 +1,7 @@
 "use strict";
+import { Router } from 'express';
+import { google } from 'googleapis';
+import { Usuario } from '../../usuarios/model';
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const googleapis_1 = require("googleapis");
@@ -88,48 +91,101 @@ router.get('/callback', async (req, res) => {
         res.redirect(`${process.env.FRONTEND_URL}/configuracion-inicial?calendar=error`);
     }
 });
+// Agrega este endpoint antes del `export default router`
 router.get('/events', async (req, res) => {
-    try {
-        const { usuarioId, timeMin, timeMax } = req.query;
-        if (!usuarioId) {
-            return res.status(400).json({ error: 'usuarioId requerido' });
-        }
-        const calendar = await getAuthenticatedCalendar(usuarioId);
-        const timeMinDate = timeMin
-            ? new Date(timeMin)
-            : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const timeMaxDate = timeMax
-            ? new Date(timeMax)
-            : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999);
-        const response = await calendar.events.list({
-            calendarId: 'primary',
-            timeMin: timeMinDate.toISOString(),
-            timeMax: timeMaxDate.toISOString(),
-            maxResults: 250,
-            singleEvents: true,
-            orderBy: 'startTime'
-        });
-        const eventos = response.data.items?.map(event => ({
-            id: event.id,
-            summary: event.summary || 'Sin título',
-            description: event.description || '',
-            start: event.start?.dateTime || event.start?.date,
-            end: event.end?.dateTime || event.end?.date,
-            location: event.location || '',
-            attendees: event.attendees?.map(a => a.email) || [],
-            hangoutLink: event.hangoutLink || null
-        })) || [];
-        res.json({ eventos });
+  try {
+    const { usuarioId, timeMin, timeMax } = req.query;
+    
+    console.log('🔍 GET /api/auth/google/events - usuarioId:', usuarioId);
+    console.log('📅 timeMin:', timeMin);
+    console.log('📅 timeMax:', timeMax);
+    
+    if (!usuarioId) {
+      return res.status(400).json({ error: 'usuarioId requerido' });
     }
-    catch (error) {
-        console.error('❌ Error obteniendo eventos:', error);
-        const status = error.message === 'No autorizado' ? 401 : 500;
-        res.status(status).json({
-            error: error.message,
-            needsAuth: error.message === 'No autorizado'
-        });
+
+    // Buscar usuario y sus tokens
+    const usuario = await Usuario.findOne({ supabaseId: usuarioId as string });
+    
+    if (!usuario?.googleTokens?.access_token) {
+      console.log('❌ Usuario no tiene tokens de Google');
+      return res.status(401).json({ error: 'No autorizado', needsAuth: true });
     }
+
+    // Configurar cliente OAuth2
+    oauth2Client.setCredentials({
+      access_token: usuario.googleTokens.access_token,
+      refresh_token: usuario.googleTokens.refresh_token,
+      expiry_date: usuario.googleTokens.expiry_date
+    });
+    
+    // Refrescar token si es necesario
+    if (usuario.googleTokens.expiry_date && 
+        usuario.googleTokens.expiry_date < Date.now()) {
+      console.log('🔄 Refrescando token...');
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      oauth2Client.setCredentials(credentials);
+      
+      await Usuario.findOneAndUpdate(
+        { supabaseId: usuarioId },
+        { googleTokens: credentials }
+      );
+    }
+    
+    // Crear cliente de Calendar
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+    
+    // Determinar rango de fechas
+    let timeMinDate: Date;
+    let timeMaxDate: Date;
+    
+    if (timeMin && timeMax) {
+      timeMinDate = new Date(timeMin as string);
+      timeMaxDate = new Date(timeMax as string);
+    } else {
+      // Default: mes actual
+      const now = new Date();
+      timeMinDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      timeMaxDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+    
+    console.log('📅 Buscando eventos desde:', timeMinDate.toISOString());
+    console.log('📅 hasta:', timeMaxDate.toISOString());
+    
+    const response = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: timeMinDate.toISOString(),
+      timeMax: timeMaxDate.toISOString(),
+      maxResults: 250,
+      singleEvents: true,
+      orderBy: 'startTime'
+    });
+    
+    console.log(`✅ ${response.data.items?.length || 0} eventos encontrados`);
+    
+    // Formatear eventos
+    const eventos = (response.data.items || []).map(event => ({
+      id: event.id,
+      summary: event.summary || 'Sin título',
+      description: event.description || '',
+      start: event.start?.dateTime || event.start?.date,
+      end: event.end?.dateTime || event.end?.date,
+      location: event.location || '',
+      attendees: event.attendees?.map(a => a.email) || [],
+      hangoutLink: event.hangoutLink || null
+    }));
+    
+    res.json({ eventos });
+    
+  } catch (error: any) {
+    console.error('❌ Error obteniendo eventos:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener eventos',
+      details: error.message
+    });
+  }
 });
+
 router.post('/events', async (req, res) => {
     try {
         const { usuarioId, evento } = req.body;

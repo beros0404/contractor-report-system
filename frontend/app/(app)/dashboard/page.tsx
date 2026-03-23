@@ -35,7 +35,6 @@ export default function DashboardPage() {
       console.log(`📡 Cargando datos para contrato: ${contratoActivo}`)
       
       try {
-        // Cargar datos específicos del contrato
         const [acts, aps, evids] = await Promise.all([
           apiClient.getActividades(contratoActivo, usuarioId),
           apiClient.getAportes(contratoActivo, usuarioId),

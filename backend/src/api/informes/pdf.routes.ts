@@ -7,7 +7,6 @@ import { es } from 'date-fns/locale';
 
 const router = Router();
 
-// Helper de Handlebars para formatear fechas
 Handlebars.registerHelper('formatDate', function(date: string, formatStr: string) {
   if (!date) return 'Fecha no disponible';
   try {
@@ -26,7 +25,6 @@ Handlebars.registerHelper('formatCurrency', function(valor: number) {
   }).format(valor);
 });
 
-// Helper para obtener el día de una fecha
 Handlebars.registerHelper('getDay', function(date: string) {
   if (!date) return '__';
   try {
@@ -36,7 +34,6 @@ Handlebars.registerHelper('getDay', function(date: string) {
   }
 });
 
-// Helper para obtener el mes y año de una fecha
 Handlebars.registerHelper('getMonthYear', function(date: string) {
   if (!date) return '__________';
   try {
@@ -46,7 +43,6 @@ Handlebars.registerHelper('getMonthYear', function(date: string) {
   }
 });
 
-// Plantilla HTML del informe - IGUAL A ReportePreview
 const templateHTML = `
 <!DOCTYPE html>
 <html>
@@ -281,10 +277,8 @@ const templateHTML = `
 </html>
 `;
 
-// Compilar la plantilla
 const template = Handlebars.compile(templateHTML);
 
-// GET /api/informes/:id/pdf
 router.get('/:id/pdf', async (req, res) => {
   try {
     const { id } = req.params;
@@ -296,7 +290,6 @@ router.get('/:id/pdf', async (req, res) => {
       return res.status(400).json({ error: 'usuarioId requerido' });
     }
 
-    // Obtener el informe
     const informe = await Informe.findOne({ 
       id: id,
       usuarioId: usuarioId.toString() 
@@ -310,7 +303,6 @@ router.get('/:id/pdf', async (req, res) => {
       return res.status(400).json({ error: 'El informe no tiene contenido' });
     }
 
-    // Preparar datos para la plantilla - MISMA ESTRUCTURA QUE ReportePreview
     const data = {
       titulo: informe.tipo === 'mensual' ? 'INFORME DE EJECUCIÓN MENSUAL' : 'INFORME DE EJECUCIÓN PARCIAL',
       contrato: {
@@ -350,7 +342,6 @@ router.get('/:id/pdf', async (req, res) => {
 
     console.log('📊 Datos para PDF - actividades:', data.actividades.length);
 
-    // Generar HTML
     const html = template(data);
 
     const browser = await puppeteer.launch({ 
@@ -361,7 +352,6 @@ router.get('/:id/pdf', async (req, res) => {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
     
-    // Generar PDF
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,

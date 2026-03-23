@@ -9,12 +9,11 @@ import { Readable } from 'stream';
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Función para obtener cliente autenticado de Google Drive
 async function getDriveClient(usuarioId: string) {
   const usuario = await Usuario.findOne({ supabaseId: usuarioId });
   
   if (!usuario?.googleTokens?.access_token) {
-    return null; // No usar Drive
+    return null; 
   }
   
   const oauth2Client = new google.auth.OAuth2(
@@ -24,7 +23,6 @@ async function getDriveClient(usuarioId: string) {
   
   oauth2Client.setCredentials(usuario.googleTokens);
   
-  // Verificar si el token ha expirado
   if (usuario.googleTokens.expiry_date && 
       usuario.googleTokens.expiry_date < Date.now()) {
     try {
@@ -38,17 +36,15 @@ async function getDriveClient(usuarioId: string) {
       );
       oauth2Client.setCredentials(credentials);
     } catch {
-      return null; // Error refrescando token, no usar Drive
+      return null; 
     }
   }
   
   return google.drive({ version: 'v3', auth: oauth2Client });
 }
 
-// Función para crear estructura de carpetas en Drive
 async function crearEstructuraCarpetas(drive: any, usuarioId: string, contratoId: string, actividadId: string) {
   try {
-    // Buscar o crear carpeta raíz
     let rootFolder = await drive.files.list({
       q: `name='ContraSeguimiento' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
       fields: 'files(id, name)'
@@ -68,7 +64,6 @@ async function crearEstructuraCarpetas(drive: any, usuarioId: string, contratoId
       rootFolderId = rootFolder.data.files[0].id;
     }
     
-    // Buscar o crear carpeta del contrato
     const contratoFolder = await drive.files.list({
       q: `name='Contrato-${contratoId}' and '${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
       fields: 'files(id, name, webViewLink)'
@@ -92,7 +87,6 @@ async function crearEstructuraCarpetas(drive: any, usuarioId: string, contratoId
       contratoFolderUrl = contratoFolder.data.files[0].webViewLink;
     }
     
-    // Buscar o crear carpeta de la actividad
     const actividadFolder = await drive.files.list({
       q: `name='Actividad-${actividadId}' and '${contratoFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
       fields: 'files(id, name, webViewLink)'
@@ -125,7 +119,6 @@ async function crearEstructuraCarpetas(drive: any, usuarioId: string, contratoId
   }
 }
 
-// GET /api/evidencias?usuarioId=xxx&contratoId=xxx
 router.get('/', async (req, res) => {
   try {
     const { usuarioId, contratoId } = req.query;
@@ -146,7 +139,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/evidencias/actividad/:actividadId?usuarioId=xxx
 router.get('/actividad/:actividadId', async (req, res) => {
   try {
     const { actividadId } = req.params;
@@ -168,7 +160,6 @@ router.get('/actividad/:actividadId', async (req, res) => {
   }
 });
 
-// GET /api/evidencias/descargar/:id
 router.get('/descargar/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -184,12 +175,10 @@ router.get('/descargar/:id', async (req, res) => {
     }
     
     if (evidencia.local?.usado && evidencia.local?.data) {
-      // Descargar de MongoDB
       res.setHeader('Content-Type', evidencia.local.contentType || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${evidencia.archivo?.nombre || 'archivo'}"`);
       res.send(evidencia.local.data);
     } else if (evidencia.drive?.usado && evidencia.drive?.archivoId) {
-      // Redirigir a Drive
       res.redirect(evidencia.drive.url || `https://drive.google.com/file/d/${evidencia.drive.archivoId}/view`);
     } else {
       res.status(404).json({ error: 'Archivo no disponible' });
@@ -200,11 +189,12 @@ router.get('/descargar/:id', async (req, res) => {
   }
 });
 
-// GET /api/evidencias/contrato/:contratoId/zip
 router.get('/contrato/:contratoId/zip', async (req, res) => {
   try {
     const { contratoId } = req.params;
     const { usuarioId } = req.query;
+    
+    console.log(`🔍 GET /evidencias/contrato/${contratoId}/zip - usuarioId:`, usuarioId);
     
     if (!usuarioId) {
       return res.status(400).json({ error: 'usuarioId requerido' });
@@ -215,62 +205,106 @@ router.get('/contrato/:contratoId/zip', async (req, res) => {
       usuarioId: usuarioId.toString()
     });
     
+    console.log(`📦 ${evidencias.length} evidencias encontradas`);
+    
     if (evidencias.length === 0) {
       return res.status(404).json({ error: 'No hay evidencias para este contrato' });
     }
     
-    // Configurar ZIP
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename=evidencias-contrato-${contratoId}.zip`);
     
-    const archive = archiver('zip', { zlib: { level: 9 } });
-    archive.pipe(res);
-    
-    // Agrupar por actividad
-    const porActividad: Record<string, typeof evidencias> = {};
-    evidencias.forEach(ev => {
-      if (!porActividad[ev.actividadId]) {
-        porActividad[ev.actividadId] = [];
-      }
-      porActividad[ev.actividadId].push(ev);
+    const archive = archiver('zip', {
+      zlib: { level: 9 } 
     });
     
-    // Agregar archivos al ZIP
+    archive.on('error', (err) => {
+      console.error('❌ Error en archiver:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error al crear ZIP' });
+      }
+    });
+    
+    archive.pipe(res);
+    
+    const porActividad: Record<string, any[]> = {};
+    evidencias.forEach(ev => {
+      const actividadId = ev.actividadId || 'sin-actividad';
+      if (!porActividad[actividadId]) {
+        porActividad[actividadId] = [];
+      }
+      porActividad[actividadId].push(ev);
+    });
+    
     for (const [actividadId, evs] of Object.entries(porActividad)) {
-      // Crear carpeta para la actividad
-      const folderName = `Actividad-${actividadId}`;
+      const folderName = `Actividad-${actividadId.substring(0, 8)}`;
       
       for (const ev of evs) {
-        const fileName = `${folderName}/${ev.archivo?.nombre || ev.nombre || 'evidencia'}`;
-        
-        if (ev.local?.usado && ev.local?.data) {
-          // Desde MongoDB
-          archive.append(ev.local.data, { name: fileName });
-        } else if (ev.enlace?.url) {
-          // Para enlaces, crear archivo .url
-          const urlContent = `[InternetShortcut]\nURL=${ev.enlace.url}`;
-          archive.append(urlContent, { name: `${fileName}.url` });
-        } else if (ev.nota?.contenido) {
-          // Para notas, crear archivo .txt
-          const content = ev.nota.titulo 
-            ? `${ev.nota.titulo}\n\n${ev.nota.contenido}`
-            : ev.nota.contenido;
-          archive.append(content, { name: `${fileName}.txt` });
+        try {
+          let fileName = `${folderName}/`;
+          
+          if (ev.archivo?.nombre) {
+            fileName += ev.archivo.nombre;
+          } else if (ev.nombre) {
+            fileName += ev.nombre;
+          } else {
+            fileName += `evidencia-${ev.id}.txt`;
+          }
+          
+          if (ev.local?.usado && ev.local?.data) {
+            archive.append(ev.local.data, { name: fileName });
+            console.log(`✅ Agregado desde MongoDB: ${fileName}`);
+            
+          } else if (ev.drive?.usado && ev.drive?.archivoId) {
+            try {
+              const drive = await getDriveClient(usuarioId as string);
+              if (drive) {
+                const fileResponse = await drive.files.get({
+                  fileId: ev.drive.archivoId,
+                  alt: 'media'
+                }, { responseType: 'stream' });
+                
+                archive.append(fileResponse.data, { name: fileName });
+                console.log(`✅ Agregado desde Drive: ${fileName}`);
+              } else {
+                const errorContent = `No se pudo descargar de Google Drive. Archivo ID: ${ev.drive.archivoId}`;
+                archive.append(errorContent, { name: `${fileName}.error.txt` });
+              }
+            } catch (driveError) {
+              console.error(`Error descargando de Drive:`, driveError);
+              const errorContent = `Error al descargar de Google Drive. Archivo ID: ${ev.drive.archivoId}`;
+              archive.append(errorContent, { name: `${fileName}.error.txt` });
+            }
+            
+          } else if (ev.enlace?.url) {
+            const urlContent = `[InternetShortcut]\nURL=${ev.enlace.url}`;
+            archive.append(urlContent, { name: fileName.replace(/\.url$/, '') + '.url' });
+            console.log(`✅ Agregado enlace: ${fileName}`);
+            
+          } else if (ev.nota?.contenido) {
+            const contenido = ev.nota.titulo 
+              ? `${ev.nota.titulo}\n\n${ev.nota.contenido}`
+              : ev.nota.contenido;
+            archive.append(contenido, { name: fileName.replace(/\.txt$/, '') + '.txt' });
+            console.log(`✅ Agregado nota: ${fileName}`);
+          }
+        } catch (itemError) {
+          console.error(`Error procesando evidencia ${ev.id}:`, itemError);
         }
       }
     }
     
+    console.log('📦 Finalizando ZIP...');
     await archive.finalize();
     
   } catch (error) {
-    console.error('Error creando ZIP:', error);
+    console.error('❌ Error creando ZIP:', error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Error al crear ZIP' });
     }
   }
 });
 
-// POST /api/evidencias/upload
 router.post('/upload', upload.single('archivo'), async (req, res) => {
   try {
     const { usuarioId, contratoId, actividadId } = req.body;
@@ -279,14 +313,12 @@ router.post('/upload', upload.single('archivo'), async (req, res) => {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
     
-    // Verificar si el usuario tiene Drive conectado
     const drive = await getDriveClient(usuarioId);
     let driveUsado = false;
     let driveInfo = null;
     
     if (drive) {
       try {
-        // Intentar subir a Drive
         const carpetas = await crearEstructuraCarpetas(drive, usuarioId, contratoId, actividadId);
         
         if (carpetas) {
@@ -320,7 +352,6 @@ router.post('/upload', upload.single('archivo'), async (req, res) => {
       }
     }
     
-    // Crear evidencia en BD (con Drive o local)
     const nuevaEvidencia = new Evidencia({
       id: `EV-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       actividadId,
@@ -345,7 +376,6 @@ router.post('/upload', upload.single('archivo'), async (req, res) => {
     
     await nuevaEvidencia.save();
     
-    // Devolver solo metadatos, no el archivo
     const evidenciaResponse = nuevaEvidencia.toObject();
     if (evidenciaResponse.local?.data) {
       delete evidenciaResponse.local.data;
@@ -359,7 +389,6 @@ router.post('/upload', upload.single('archivo'), async (req, res) => {
   }
 });
 
-// POST /api/evidencias/enlace
 router.post('/enlace', async (req, res) => {
   try {
     const { usuarioId, contratoId, actividadId, url, titulo, descripcion } = req.body;
@@ -368,7 +397,6 @@ router.post('/enlace', async (req, res) => {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
     
-    // Verificar si el usuario tiene Drive conectado
     const drive = await getDriveClient(usuarioId);
     let driveUsado = false;
     let driveInfo = null;
@@ -378,7 +406,6 @@ router.post('/enlace', async (req, res) => {
         const carpetas = await crearEstructuraCarpetas(drive, usuarioId, contratoId, actividadId);
         
         if (carpetas) {
-          // Crear archivo .url
           const urlContent = `[InternetShortcut]\nURL=${url}`;
           const urlBuffer = Buffer.from(urlContent, 'utf-8');
           
@@ -413,135 +440,7 @@ router.post('/enlace', async (req, res) => {
         console.error('Error subiendo a Drive:', driveError);
       }
     }
-    // GET /api/evidencias/contrato/:contratoId/zip
-router.get('/contrato/:contratoId/zip', async (req, res) => {
-  try {
-    const { contratoId } = req.params;
-    const { usuarioId } = req.query;
     
-    console.log(`🔍 GET /evidencias/contrato/${contratoId}/zip - usuarioId:`, usuarioId);
-    
-    if (!usuarioId) {
-      return res.status(400).json({ error: 'usuarioId requerido' });
-    }
-    
-    // Obtener todas las evidencias del contrato
-    const evidencias = await Evidencia.find({ 
-      contratoId,
-      usuarioId: usuarioId.toString()
-    });
-    
-    console.log(`📦 ${evidencias.length} evidencias encontradas`);
-    
-    if (evidencias.length === 0) {
-      return res.status(404).json({ error: 'No hay evidencias para este contrato' });
-    }
-    
-    // Configurar headers para descarga
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename=evidencias-contrato-${contratoId}.zip`);
-    
-    // Crear archivo ZIP
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // Máxima compresión
-    });
-    
-    // Manejar errores del archive
-    archive.on('error', (err) => {
-      console.error('❌ Error en archiver:', err);
-      res.status(500).json({ error: 'Error al crear ZIP' });
-    });
-    
-    // Pipe del archive a la respuesta
-    archive.pipe(res);
-    
-    // Agrupar evidencias por actividad para crear carpetas
-    const porActividad: Record<string, any[]> = {};
-    evidencias.forEach(ev => {
-      const actividadId = ev.actividadId || 'sin-actividad';
-      if (!porActividad[actividadId]) {
-        porActividad[actividadId] = [];
-      }
-      porActividad[actividadId].push(ev);
-    });
-    
-    // Agregar archivos al ZIP organizados por actividad
-    for (const [actividadId, evs] of Object.entries(porActividad)) {
-      // Crear nombre de carpeta amigable
-      const folderName = `Actividad-${actividadId.substring(0, 8)}`;
-      
-      for (const ev of evs) {
-        try {
-          let fileName = `${folderName}/`;
-          
-          // Determinar el nombre del archivo
-          if (ev.archivo?.nombre) {
-            fileName += ev.archivo.nombre;
-          } else if (ev.nombre) {
-            fileName += ev.nombre;
-          } else {
-            fileName += `evidencia-${ev.id}.txt`;
-          }
-          
-          // Agregar según el tipo de almacenamiento
-          if (ev.local?.usado && ev.local?.data) {
-            // Desde MongoDB (datos binarios)
-            archive.append(ev.local.data, { name: fileName });
-            console.log(`✅ Agregado desde MongoDB: ${fileName}`);
-            
-          } else if (ev.drive?.usado && ev.drive?.archivoId) {
-            // Desde Google Drive - necesitamos descargar el archivo
-            try {
-              const drive = await getDriveClient(usuarioId as string);
-              if (drive) {
-                const fileResponse = await drive.files.get({
-                  fileId: ev.drive.archivoId,
-                  alt: 'media'
-                }, { responseType: 'stream' });
-                
-                archive.append(fileResponse.data, { name: fileName });
-                console.log(`✅ Agregado desde Drive: ${fileName}`);
-              } else {
-                // Si no se puede acceder a Drive, agregar un archivo de error
-                const errorContent = `No se pudo descargar de Google Drive. Archivo ID: ${ev.drive.archivoId}`;
-                archive.append(errorContent, { name: `${fileName}.error.txt` });
-              }
-            } catch (driveError) {
-              console.error(`Error descargando de Drive:`, driveError);
-              const errorContent = `Error al descargar de Google Drive. Archivo ID: ${ev.drive.archivoId}`;
-              archive.append(errorContent, { name: `${fileName}.error.txt` });
-            }
-            
-          } else if (ev.enlace?.url) {
-            // Para enlaces, crear archivo .url
-            const urlContent = `[InternetShortcut]\nURL=${ev.enlace.url}`;
-            archive.append(urlContent, { name: fileName.replace(/\.url$/, '') + '.url' });
-            console.log(`✅ Agregado enlace: ${fileName}`);
-            
-          } else if (ev.nota?.contenido) {
-            // Para notas, crear archivo .txt
-            const contenido = ev.nota.titulo 
-              ? `${ev.nota.titulo}\n\n${ev.nota.contenido}`
-              : ev.nota.contenido;
-            archive.append(contenido, { name: fileName.replace(/\.txt$/, '') + '.txt' });
-            console.log(`✅ Agregado nota: ${fileName}`);
-          }
-        } catch (itemError) {
-          console.error(`Error procesando evidencia ${ev.id}:`, itemError);
-        }
-      }
-    }
-    
-    console.log('📦 Finalizando ZIP...');
-    await archive.finalize();
-    
-  } catch (error) {
-    console.error('❌ Error creando ZIP:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Error al crear ZIP' });
-    }
-  }
-});
     const nuevaEvidencia = new Evidencia({
       id: `EV-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       actividadId,
@@ -551,7 +450,7 @@ router.get('/contrato/:contratoId/zip', async (req, res) => {
       nombre: titulo || url,
       enlace: { url, titulo, descripcion },
       drive: driveUsado ? driveInfo : { usado: false },
-      local: { usado: false }, // No guardamos enlaces localmente
+      local: { usado: false }, 
       fecha: new Date()
     });
     
@@ -565,7 +464,6 @@ router.get('/contrato/:contratoId/zip', async (req, res) => {
   }
 });
 
-// POST /api/evidencias/nota
 router.post('/nota', async (req, res) => {
   try {
     const { usuarioId, contratoId, actividadId, titulo, contenido } = req.body;
@@ -646,7 +544,6 @@ router.post('/nota', async (req, res) => {
   }
 });
 
-// GET /api/evidencias/carpeta/:actividadId
 router.get('/carpeta/:actividadId', async (req, res) => {
   try {
     const { actividadId } = req.params;
@@ -656,7 +553,6 @@ router.get('/carpeta/:actividadId', async (req, res) => {
       return res.status(400).json({ error: 'usuarioId requerido' });
     }
     
-    // Buscar evidencias de esta actividad que tengan carpeta en Drive
     const evidencia = await Evidencia.findOne({ 
       actividadId,
       usuarioId: usuarioId.toString(),

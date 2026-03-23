@@ -1,9 +1,7 @@
 import OpenAI from 'openai';
 
-// Configuración para Azure OpenAI
 const useAzure = !!process.env.AZURE_OPENAI_ENDPOINT;
 
-// Cliente para OpenAI (estándar o Azure)
 const openai = new OpenAI({
   ...(useAzure ? {
     apiKey: process.env.AZURE_OPENAI_API_KEY || '',
@@ -21,13 +19,11 @@ export async function generarResumenActividad(titulo: string, aportes: any[]): P
       return "No se registraron aportes para esta actividad en el período.";
     }
 
-    // Verificar que hay configuración de API
     if (!process.env.OPENAI_API_KEY && !process.env.AZURE_OPENAI_API_KEY) {
       console.warn('⚠️ No hay API key configurada para OpenAI/Azure');
       return generarResumenLocal(titulo, aportes);
     }
 
-    // Preparar el texto de los aportes
     const textoAportes = aportes.map(ap => 
       `- ${new Date(ap.fecha).toLocaleDateString('es-ES')}: ${ap.descripcion}`
     ).join('\n');
@@ -48,7 +44,7 @@ El resumen debe:
 
     const completion = await openai.chat.completions.create({
       ...(useAzure ? {
-        model: '', // Azure usa el deployment name en la URL, no en el body
+        model: '', 
       } : {
         model: "gpt-3.5-turbo",
       }),
@@ -74,7 +70,6 @@ El resumen debe:
   }
 }
 
-// Función de respaldo local si no hay API o falla
 function generarResumenLocal(titulo: string, aportes: any[]): string {
   if (!aportes || aportes.length === 0) {
     return "No se registraron aportes para esta actividad en el período.";

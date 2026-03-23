@@ -4,7 +4,6 @@ import { Usuario, IUsuario } from '../../usuarios/model';
 
 const router = Router();
 
-// Configuración OAuth2 (reutilizar la misma configuración)
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
@@ -16,7 +15,6 @@ const SCOPES = [
   'https://www.googleapis.com/auth/drive.appdata'
 ];
 
-// Función para refrescar token
 async function refreshTokenIfNeeded(usuario: any) {
   if (!usuario.googleTokens) return null;
   
@@ -41,7 +39,6 @@ async function refreshTokenIfNeeded(usuario: any) {
   return usuario.googleTokens;
 }
 
-// Iniciar autenticación de Drive
 router.get('/auth', (req, res) => {
   try {
     const { usuarioId, redirect } = req.query;
@@ -71,7 +68,6 @@ router.get('/auth', (req, res) => {
   }
 });
 
-// Callback de Drive
 router.get('/callback', async (req, res) => {
   try {
     const { code, state } = req.query;
@@ -84,7 +80,6 @@ router.get('/callback', async (req, res) => {
     
     const { tokens } = await oauth2Client.getToken(code as string);
     
-    // Actualizar o crear tokens para Drive (podemos usar el mismo campo googleTokens)
     await Usuario.findOneAndUpdate(
       { supabaseId: usuarioId },
       { 
@@ -102,7 +97,6 @@ router.get('/callback', async (req, res) => {
   }
 });
 
-// Verificar estado de Drive
 router.get('/status', async (req, res) => {
   try {
     const { usuarioId } = req.query;
@@ -117,7 +111,6 @@ router.get('/status', async (req, res) => {
       return res.json({ conectado: false });
     }
     
-    // Verificar si el token tiene los scopes de Drive
     const tieneScopeDrive = usuario.googleTokens.scope?.includes('drive.file') || false;
     
     res.json({ 
@@ -131,7 +124,6 @@ router.get('/status', async (req, res) => {
   }
 });
 
-// Desconectar Drive
 router.post('/disconnect', async (req, res) => {
   try {
     const { usuarioId } = req.body;
@@ -140,7 +132,6 @@ router.post('/disconnect', async (req, res) => {
       return res.status(400).json({ error: 'usuarioId requerido' });
     }
     
-    // Solo removemos los tokens de Drive (opcionalmente podemos mantener Calendar)
     await Usuario.findOneAndUpdate(
       { supabaseId: usuarioId },
       { 

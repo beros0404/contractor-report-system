@@ -85,7 +85,6 @@ export default function ActividadDetailPage() {
     try {
       setLoading(true)
       
-      // Preparar datos a actualizar
       const datosActualizados: any = {}
       
       if (tituloEditado !== actividad.titulo) {

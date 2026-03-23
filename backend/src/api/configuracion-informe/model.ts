@@ -6,7 +6,6 @@ const configuracionInformeSchema = new mongoose.Schema({
   contratoId: { type: String, required: true, index: true },
   nombre: { type: String, default: 'Configuración por defecto' },
   
-  // Estructura de la plantilla - orden y visibilidad de secciones
   plantilla: {
     header: {
       visible: { type: Boolean, default: true },
@@ -14,13 +13,13 @@ const configuracionInformeSchema = new mongoose.Schema({
       mostrarLogo: { type: Boolean, default: true }
     },
     secciones: [{
-      id: String,           // Identificador único de la sección
-      tipo: String,         // 'info-contrato', 'periodo', 'actividades', 'firmas', 'personalizado'
-      titulo: String,       // Título personalizado para la sección
+      id: String,           
+      tipo: String,         
+      titulo: String,       
       visible: { type: Boolean, default: true },
       orden: Number,
-      columnas: { type: Number, default: 2 }, // Para grids
-      campos: [{            // Para secciones que tienen subcampos
+      columnas: { type: Number, default: 2 }, 
+      campos: [{            
         id: String,
         label: String,
         visible: { type: Boolean, default: true },
@@ -35,7 +34,6 @@ const configuracionInformeSchema = new mongoose.Schema({
     }
   },
   
-  // Estilos personalizados
   estilos: {
     fuente: { type: String, default: 'Arial' },
     colorPrimario: { type: String, default: '#3498db' },

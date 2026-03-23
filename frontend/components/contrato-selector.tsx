@@ -28,7 +28,6 @@ export function ContratoSelector({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Encontrar el contrato seleccionado
   const contratoSeleccionado = contratos.find(c => c._id === contratoActivo || c.id === contratoActivo)
 
   console.log("Contrato seleccionado:", contratoSeleccionado)
@@ -36,7 +35,6 @@ export function ContratoSelector({
 
   const handleSelectContrato = (contrato: Contrato) => {
     console.log("Seleccionando contrato:", contrato)
-    // Usar _id de MongoDB si existe, sino usar id
     const contratoId = contrato._id || contrato.id
     if (contratoId) {
       onContratoChange(contratoId)
@@ -73,7 +71,6 @@ export function ContratoSelector({
             ) : (
               <div className="max-h-60 overflow-y-auto">
                 {contratos.map((contrato) => {
-                  // Usar _id de MongoDB como clave principal
                   const key = contrato._id || contrato.id || `temp-${Math.random()}`
                   const contratoId = contrato._id || contrato.id
                   

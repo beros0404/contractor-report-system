@@ -3,7 +3,6 @@ import { Firma } from './model';
 
 const router = Router();
 
-// GET /api/firmas?usuarioId=xxx&tipo=contratista
 router.get('/', async (req, res) => {
   try {
     const { usuarioId, tipo } = req.query;
@@ -26,7 +25,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/firmas
 router.post('/', async (req, res) => {
   try {
     const { usuarioId, nombre, imagen, tipo } = req.body;
@@ -52,7 +50,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/firmas/:id/usar
 router.put('/:id/usar', async (req, res) => {
   try {
     const { id } = req.params;

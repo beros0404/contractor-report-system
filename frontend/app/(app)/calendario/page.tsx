@@ -21,7 +21,6 @@ const localizer = dateFnsLocalizer({
   locales: { es }
 })
 
-// Componente personalizado para los eventos en el calendario
 const EventoCalendario = ({ event }: any) => (
   <div className="p-1 text-xs overflow-hidden">
     <strong>{event.title}</strong>
@@ -40,65 +39,186 @@ export default function CalendarioPage() {
   const [fechaActual, setFechaActual] = useState(new Date())
 
   const cargarEventos = useCallback(async (inicio?: Date, fin?: Date) => {
-    if (!user?.id) return
+    if (!user?.id) {
+      console.warn('⚠️ No hay usuario autenticado')
+      setLoading(false)
+      return
+    }
 
     try {
       setLoading(true)
       
-      // Determinar el rango de fechas
       const timeMin = inicio || startOfMonth(fechaActual)
       const timeMax = fin || endOfMonth(fechaActual)
       
-      const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/events`)
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+      const url = new URL(`${baseUrl}/api/auth/google/events`)
       url.searchParams.append('usuarioId', user.id)
       url.searchParams.append('timeMin', timeMin.toISOString())
       url.searchParams.append('timeMax', timeMax.toISOString())
       
       console.log('📅 Cargando eventos desde:', timeMin.toISOString(), 'hasta:', timeMax.toISOString())
+      console.log('📡 URL completa:', url.toString())
       
       const res = await fetch(url.toString())
+      console.log('📊 Status code:', res.status)
       
-      if (res.status === 401) {
-        const data = await res.json()
-        if (data.needsAuth) {
-          toast.error("Conecta tu calendario en configuración")
-        }
+      // Obtener la respuesta como texto para debug
+      const responseText = await res.text()
+      console.log('📄 Respuesta raw (primeros 500 chars):', responseText.substring(0, 500))
+      
+      // Intentar parsear como JSON
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log('📦 Datos parseados:', data)
+      } catch (parseError) {
+        console.error('❌ Error parseando JSON:', parseError)
+        setEventos([])
+        toast.error('Error en la respuesta del servidor')
         return
       }
       
-      const data = await res.json()
+      // Manejar error 401 (no autenticado)
+      if (res.status === 401) {
+        if (data?.needsAuth) {
+          toast.error("Conecta tu calendario de Google en configuración", {
+            duration: 5000,
+            action: {
+              label: "Configurar",
+              onClick: () => window.location.href = '/configuracion?tab=integraciones'
+            }
+          })
+        } else {
+          toast.error("No autorizado para acceder al calendario")
+        }
+        setEventos([])
+        return
+      }
       
-      // Transformar eventos al formato de react-big-calendar
-      const eventosFormateados = data.eventos.map((evento: any) => ({
-        id: evento.id,
-        title: evento.summary,
-        summary: evento.summary,
-        description: evento.description,
-        start: new Date(evento.start),
-        end: new Date(evento.end),
-        location: evento.location,
-        attendees: evento.attendees,
-        hangoutLink: evento.hangoutLink
-      }))
+      // Manejar otros errores HTTP
+      if (!res.ok) {
+        console.error('❌ Error HTTP:', res.status, data)
+        toast.error(data?.error || data?.details || `Error ${res.status} al cargar eventos`)
+        setEventos([])
+        return
+      }
       
-      console.log(`✅ ${eventosFormateados.length} eventos cargados`)
+      // Validar estructura de datos
+      if (!data || typeof data !== 'object') {
+        console.error('❌ Respuesta inválida:', data)
+        toast.error('Formato de respuesta inválido')
+        setEventos([])
+        return
+      }
+      
+      // Verificar que eventos existe y es un array
+      if (!data.eventos) {
+        console.warn('⚠️ La respuesta no tiene campo "eventos":', data)
+        setEventos([])
+        return
+      }
+      
+      if (!Array.isArray(data.eventos)) {
+        console.error('❌ "eventos" no es un array:', data.eventos)
+        toast.error('Formato de eventos inválido')
+        setEventos([])
+        return
+      }
+      
+      // Formatear eventos con validaciones
+      const eventosFormateados = data.eventos.map((evento: any, index: number) => {
+        // Validar fechas
+        let startDate, endDate
+        try {
+          startDate = evento.start ? new Date(evento.start) : new Date()
+          endDate = evento.end ? new Date(evento.end) : new Date(startDate.getTime() + 3600000)
+          
+          if (isNaN(startDate.getTime())) {
+            console.warn('Fecha de inicio inválida:', evento.start)
+            startDate = new Date()
+          }
+          if (isNaN(endDate.getTime())) {
+            console.warn('Fecha de fin inválida:', evento.end)
+            endDate = new Date(startDate.getTime() + 3600000)
+          }
+        } catch (e) {
+          console.error('Error procesando fechas:', e)
+          startDate = new Date()
+          endDate = new Date(Date.now() + 3600000)
+        }
+        
+        return {
+          id: evento.id || `temp-${Date.now()}-${index}`,
+          title: evento.summary || 'Sin título',
+          summary: evento.summary || 'Sin título',
+          description: evento.description || '',
+          start: startDate,
+          end: endDate,
+          location: evento.location || '',
+          attendees: Array.isArray(evento.attendees) ? evento.attendees : [],
+          hangoutLink: evento.hangoutLink || null
+        }
+      })
+      
+      console.log(`✅ ${eventosFormateados.length} eventos cargados correctamente`)
       setEventos(eventosFormateados)
       
+      if (eventosFormateados.length === 0) {
+        toast.info('No hay eventos en el período seleccionado')
+      }
+      
     } catch (error) {
-      console.error("Error cargando eventos:", error)
-      toast.error("Error al cargar eventos")
+      console.error("❌ Error cargando eventos:", error)
+      toast.error(error instanceof Error ? error.message : "Error al cargar eventos")
+      setEventos([])
     } finally {
       setLoading(false)
     }
   }, [user?.id, fechaActual])
 
+  // Efecto para cargar eventos cuando cambia el usuario o la fecha
   useEffect(() => {
-    cargarEventos()
-  }, [cargarEventos, fechaActual])
+    if (user?.id) {
+      cargarEventos()
+    } else {
+      setLoading(false)
+    }
+  }, [cargarEventos, user?.id])
+
+  // Verificar conexión de Google al cargar la página
+  useEffect(() => {
+    const verificarConexionGoogle = async () => {
+      if (!user?.id) return
+      
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+        const res = await fetch(`${baseUrl}/api/auth/google/status?usuarioId=${user.id}`)
+        
+        if (res.ok) {
+          const data = await res.json()
+          console.log('🔌 Estado Google Calendar:', data)
+          
+          if (!data.conectado) {
+            toast.info('Conecta Google Calendar para sincronizar tus eventos', {
+              duration: 8000,
+              action: {
+                label: 'Conectar',
+                onClick: () => window.location.href = '/configuracion?tab=integraciones'
+              }
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error verificando conexión:', error)
+      }
+    }
+    
+    verificarConexionGoogle()
+  }, [user?.id])
 
   const handleNavigate = (nuevaFecha: Date) => {
     setFechaActual(nuevaFecha)
-    // No necesitamos llamar a cargarEventos aquí porque el useEffect lo hará automáticamente
   }
 
   const handleSelectEvent = (evento: any) => {
@@ -110,6 +230,7 @@ export default function CalendarioPage() {
     setEventoSeleccionado({ start, end })
     setShowForm(true)
   }
+  
   const handleSaveEvento = async (eventoData: any) => {
     try {
       if (!user?.id) {
@@ -131,9 +252,10 @@ export default function CalendarioPage() {
   
       console.log('📦 Enviando al backend:', JSON.stringify(eventoToSave, null, 2))
   
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
       const url = eventoSeleccionado?.id 
-        ? `${process.env.NEXT_PUBLIC_API_URL}/auth/google/events/${eventoSeleccionado.id}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/auth/google/events`
+        ? `${baseUrl}/api/auth/google/events/${eventoSeleccionado.id}`
+        : `${baseUrl}/api/auth/google/events`
       
       const method = eventoSeleccionado?.id ? 'PUT' : 'POST'
       
@@ -152,44 +274,38 @@ export default function CalendarioPage() {
       })
       
       console.log('📡 Response status:', response.status)
-      console.log('📡 Response status text:', response.statusText)
       
-      // Leer la respuesta como texto primero
       const responseText = await response.text()
       console.log('📦 Response text:', responseText)
       
-      // Intentar parsear como JSON
       let responseData
       try {
         responseData = JSON.parse(responseText)
-        console.log('📦 Response parsed:', responseData)
       } catch (e) {
-        console.log('📦 No es JSON válido, es texto plano')
+        console.log('📦 No es JSON válido')
       }
       
       if (!response.ok) {
-        // Mostrar el error detallado
         const errorMsg = responseData?.error || responseData?.details || responseText || `Error ${response.status}`
         console.error('❌ Error del servidor:', errorMsg)
         throw new Error(errorMsg)
       }
       
-      // Si llegamos aquí, todo salió bien
-      const nuevoEvento = responseData
+      // Formatear el evento para el estado local
+      const nuevoEventoFormateado = {
+        ...responseData,
+        start: new Date(responseData.start),
+        end: new Date(responseData.end),
+        title: responseData.summary
+      }
       
       if (eventoSeleccionado?.id) {
         setEventos(eventos.map(ev => 
-          ev.id === eventoSeleccionado.id 
-            ? { ...nuevoEvento, start: new Date(nuevoEvento.start), end: new Date(nuevoEvento.end) }
-            : ev
+          ev.id === eventoSeleccionado.id ? nuevoEventoFormateado : ev
         ))
         toast.success("Evento actualizado")
       } else {
-        setEventos([...eventos, {
-          ...nuevoEvento,
-          start: new Date(nuevoEvento.start),
-          end: new Date(nuevoEvento.end)
-        }])
+        setEventos([...eventos, nuevoEventoFormateado])
         toast.success("Evento creado")
       }
       
@@ -207,11 +323,15 @@ export default function CalendarioPage() {
     
     if (confirm("¿Estás seguro de eliminar este evento?")) {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/events/${id}?usuarioId=${user.id}`, {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+        const response = await fetch(`${baseUrl}/api/auth/google/events/${id}?usuarioId=${user.id}`, {
           method: 'DELETE'
         })
         
-        if (!response.ok) throw new Error('Error al eliminar evento')
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(errorText || 'Error al eliminar evento')
+        }
         
         setEventos(eventos.filter(ev => ev.id !== id))
         setShowForm(false)
@@ -220,9 +340,21 @@ export default function CalendarioPage() {
         
       } catch (error) {
         console.error("Error eliminando evento:", error)
-        toast.error("Error al eliminar evento")
+        toast.error(error instanceof Error ? error.message : "Error al eliminar evento")
       }
     }
+  }
+
+  // Mostrar estado de carga
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <PageHeader titulo="Calendario" descripcion="Gestiona tus reuniones y eventos" />
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -270,9 +402,19 @@ export default function CalendarioPage() {
         </div>
       </PageHeader>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      {eventos.length === 0 ? (
+        <div className="bg-card border border-border rounded-lg p-8 text-center">
+          <p className="text-muted-foreground">No hay eventos para mostrar</p>
+          <button
+            onClick={() => {
+              setEventoSeleccionado(null)
+              setShowForm(true)
+            }}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            Crear primer evento
+          </button>
         </div>
       ) : (
         <>

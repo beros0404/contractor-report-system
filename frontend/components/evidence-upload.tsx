@@ -33,12 +33,17 @@ export function EvidenciaUpload({ actividadId, onSuccess }: EvidenciaUploadProps
     formData.append('actividadId', actividadId)
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/evidencias/upload`, {
+      // ✅ CORREGIDO: Agregar /api/ a la ruta
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/evidencias/upload`, {
         method: 'POST',
         body: formData
       })
 
-      if (!res.ok) throw new Error('Error al subir archivo')
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('❌ Error response:', errorText)
+        throw new Error('Error al subir archivo')
+      }
 
       const data = await res.json()
       
@@ -69,7 +74,8 @@ export function EvidenciaUpload({ actividadId, onSuccess }: EvidenciaUploadProps
 
     setUploading(true)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/evidencias/enlace`, {
+      // ✅ CORREGIDO: Agregar /api/ a la ruta
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/evidencias/enlace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -80,7 +86,11 @@ export function EvidenciaUpload({ actividadId, onSuccess }: EvidenciaUploadProps
         })
       })
 
-      if (!res.ok) throw new Error('Error al guardar enlace')
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('❌ Error response:', errorText)
+        throw new Error('Error al guardar enlace')
+      }
 
       const data = await res.json()
       
@@ -111,7 +121,8 @@ export function EvidenciaUpload({ actividadId, onSuccess }: EvidenciaUploadProps
 
     setUploading(true)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/evidencias/nota`, {
+      // ✅ CORREGIDO: Agregar /api/ a la ruta
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/evidencias/nota`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -122,7 +133,11 @@ export function EvidenciaUpload({ actividadId, onSuccess }: EvidenciaUploadProps
         })
       })
 
-      if (!res.ok) throw new Error('Error al guardar nota')
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('❌ Error response:', errorText)
+        throw new Error('Error al guardar nota')
+      }
 
       const data = await res.json()
       
@@ -148,8 +163,9 @@ export function EvidenciaUpload({ actividadId, onSuccess }: EvidenciaUploadProps
     try {
       toast.info("Preparando descarga de evidencias...")
       
+      // ✅ CORREGIDO: Agregar /api/ a la ruta
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/evidencias/contrato/${contratoActivo}/zip?usuarioId=${usuarioId}`
+        `${process.env.NEXT_PUBLIC_API_URL}/api/evidencias/contrato/${contratoActivo}/zip?usuarioId=${usuarioId}`
       )
       
       if (!response.ok) throw new Error('Error al descargar evidencias')

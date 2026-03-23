@@ -10,14 +10,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Si no hay contrato activo, esperar
     if (!contratoActivo) {
       return;
     }
 
     const initializeStore = async () => {
       try {
-        // Ahora getConfiguracion recibe el contratoId
         await Promise.all([
           apiClient.getActividades(contratoActivo),
           apiClient.getConfiguracion(contratoActivo)
@@ -33,7 +31,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     initializeStore();
   }, [contratoActivo]);
 
-  // Mostrar loading mientras carga el contrato o el store
   if (contratoLoading || (!ready && contratoActivo)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -47,7 +44,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  // Mostrar error si algo falla
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">

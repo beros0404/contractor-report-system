@@ -34,7 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       
-      // Limpiar localStorage cuando cambia el usuario
       if (!session?.user) {
         localStorage.removeItem("contratoActivo")
       }

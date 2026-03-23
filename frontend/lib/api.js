@@ -1,8 +1,6 @@
-// lib/api.js
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://contractor-report-system.onrender.com';
 
 export async function apiFetch(endpoint, options = {}) {
-  // Asegurar que el endpoint tenga /api
   const url = endpoint.startsWith('http') 
     ? endpoint 
     : `${API_BASE_URL}${endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`}`;
@@ -24,7 +22,6 @@ export async function apiFetch(endpoint, options = {}) {
   return response.json();
 }
 
-// Funciones específicas
 export const contratosAPI = {
   getPorUsuario: (usuarioId) => 
     apiFetch(`/api/contracts?usuarioId=${usuarioId}`),

@@ -15,14 +15,12 @@ export default function NuevoContratoPage() {
   const { refreshContratos } = useContrato()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    // Datos del Contrato
     numero: "",
     entidad: "",
     objeto: "",
     fechaInicio: "",
     fechaFin: "",
     valor: 0,
-    // Datos del Supervisor
     supervisorNombre: "",
     supervisorCargo: ""
   })
@@ -30,7 +28,6 @@ export default function NuevoContratoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validar campos requeridos
     if (!form.numero || !form.entidad || !form.objeto || !form.fechaInicio || !form.fechaFin || !form.valor) {
       toast.error("Por favor completa todos los campos del contrato")
       return
@@ -44,10 +41,8 @@ export default function NuevoContratoPage() {
     setLoading(true)
 
     try {
-      // Crear el contrato con valores por defecto para los campos no incluidos
       const nuevoContrato = {
         ...form,
-        // Valores por defecto para campos del contratista (se pueden editar después)
         contratistaNombre: user?.email?.split("@")[0] || "Por definir",
         contratistaCedula: "Por definir",
         contratistaProfesion: "Por definir",
@@ -92,7 +87,6 @@ export default function NuevoContratoPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Datos del Contrato */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground border-b pb-2">
               Datos del Contrato
@@ -152,7 +146,6 @@ export default function NuevoContratoPage() {
             </div>
           </div>
 
-          {/* Datos del Supervisor */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground border-b pb-2">
               Datos del Supervisor
@@ -176,7 +169,6 @@ export default function NuevoContratoPage() {
             </div>
           </div>
 
-          {/* Nota sobre campos pendientes */}
           <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
             <p>
               <span className="font-medium text-foreground">Nota:</span> Los datos del contratista 
@@ -208,7 +200,6 @@ export default function NuevoContratoPage() {
   )
 }
 
-// Componentes reutilizables
 function FieldInput({
   label,
   value,

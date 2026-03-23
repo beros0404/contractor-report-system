@@ -34,7 +34,6 @@ const configuracionSchema = new mongoose.Schema({
   }
 });
 
-// Solo mantener índices necesarios
 configuracionSchema.index({ usuarioId: 1, contratoId: 1 });
 
 export const Configuracion = mongoose.model('Configuracion', configuracionSchema);

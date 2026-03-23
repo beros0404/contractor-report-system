@@ -1,16 +1,18 @@
 "use strict";
+import { Router } from 'express';
+import { google } from 'googleapis';
+import { Usuario } from '../../usuarios/model';
+
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const googleapis_1 = require("googleapis");
 const model_1 = require("../../usuarios/model");
 const router = (0, express_1.Router)();
-// Configuración OAuth2 (reutilizar la misma configuración)
 const oauth2Client = new googleapis_1.google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/auth/google/drive/callback');
 const SCOPES = [
     'https://www.googleapis.com/auth/drive.file',
     'https://www.googleapis.com/auth/drive.appdata'
 ];
-// Función para refrescar token
 async function refreshTokenIfNeeded(usuario) {
     if (!usuario.googleTokens)
         return null;

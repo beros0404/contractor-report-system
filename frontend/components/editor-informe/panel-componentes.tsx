@@ -44,7 +44,6 @@ export function PanelComponentes({ onAgregarSeccion, onAgregarCampo, config }: P
     }))
   }
 
-  // Componente arrastrable para campos
   const CampoArrastrable = ({ campo, seccionId }: { campo: Campo; seccionId: string }) => {
     const [{ isDragging }, drag] = useDrag({
       type: 'CAMPO',
@@ -68,7 +67,6 @@ export function PanelComponentes({ onAgregarSeccion, onAgregarCampo, config }: P
     )
   }
 
-  // Secciones predefinidas con sus campos
   const seccionesDisponibles = {
     'info-contrato': {
       titulo: 'Información del Contrato',

@@ -50,12 +50,12 @@ export function CalendarConnect({ onConnected }: CalendarConnectProps) {
       url.searchParams.delete('calendar')
       window.history.replaceState({}, '', url.toString())
     }
-  }, [connected, onConnected]) // Eliminamos la dependencia que causaba el loop
+  }, [connected, onConnected]) 
 
   const handleConnect = async () => {
     setLoading(true)
     try {
-      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google/auth?usuarioId=${user?.id}&redirect=/configuracion-inicial`
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/auth?usuarioId=${user?.id}&redirect=/configuracion-inicial`
     } catch (error) {
       console.error("Error conectando calendario:", error)
       toast.error("Error al conectar calendario")
@@ -66,7 +66,7 @@ export function CalendarConnect({ onConnected }: CalendarConnectProps) {
   const handleDisconnect = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/disconnect`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/disconnect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuarioId: user?.id })

@@ -67,14 +67,12 @@ app.get('/', (req, res) => {
   });
 });
 
-// Conectar a MongoDB
 connectDB().then(() => {
   console.log('✅ Conectado a MongoDB - DocumentosContratistas');
 }).catch(err => {
   console.error('❌ Error conectando a MongoDB:', err);
 });
 
-// Rutas de la API
 app.use('/api/activities', activityRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/aportes', aportesRoutes);
@@ -86,7 +84,6 @@ app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/auth/google/drive', googleDriveRoutes);
 app.use('/api/informes', informePdfRoutes);
 
-// Manejo de errores 404
 app.use('*', (req, res) => {
   console.log(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
@@ -96,7 +93,6 @@ app.use('*', (req, res) => {
   });
 });
 
-// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   console.log(`🌐 Entorno: ${process.env.NODE_ENV || 'development'}`);

@@ -81,7 +81,6 @@ export interface Contrato {
   contratistaProfesion: string
   supervisorNombre: string
   supervisorCargo: string
-  // Solo lugar de firma configurable
   lugarFirma?: string
   usuarioId: string
   estado: 'activo' | 'inactivo' | 'finalizado'

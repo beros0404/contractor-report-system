@@ -37,7 +37,6 @@ export function ContratoProvider({ children }: { children: ReactNode }) {
   console.log('🔄 ContratoProvider - user:', user?.id)
   console.log('📍 Pathname:', pathname)
 
-  // Efecto para limpiar localStorage cuando cambia el usuario
   useEffect(() => {
     if (user?.id) {
       const guardado = localStorage.getItem("contratoActivo")
@@ -141,7 +140,7 @@ export function ContratoProvider({ children }: { children: ReactNode }) {
     console.log('🔄 Cambiando contrato activo a:', id)
     setContratoActivoState(id)
     localStorage.setItem("contratoActivo", id)
-    setContrato(null) // Limpiar contrato anterior
+    setContrato(null) 
     await cargarContrato(id)
   }
 

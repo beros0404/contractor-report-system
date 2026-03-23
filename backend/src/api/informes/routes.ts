@@ -117,7 +117,6 @@ router.post('/', async (req, res) => {
 
     console.log('🤖 Generando resúmenes con IA...');
     
-    // Generar resúmenes con OpenAI
     const actividadesConResumen = await generarResumenMultiple(actividades);
 
     const fechaInicio = new Date(año, mes - 1, 1);

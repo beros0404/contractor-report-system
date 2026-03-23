@@ -3,7 +3,6 @@ import { Aporte } from './model';
 
 const router = Router();
 
-// GET /api/aportes?usuarioId=xxx&contratoId=xxx
 router.get('/', async (req, res) => {
   try {
     const { usuarioId, contratoId } = req.query;
@@ -27,7 +26,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/aportes/actividad/:actividadId?usuarioId=xxx
 router.get('/actividad/:actividadId', async (req, res) => {
   try {
     const { actividadId } = req.params;
@@ -52,7 +50,6 @@ router.get('/actividad/:actividadId', async (req, res) => {
   }
 });
 
-// POST /api/aportes
 router.post('/', async (req, res) => {
   try {
     const { usuarioId, contratoId, actividadId } = req.body;
@@ -67,7 +64,7 @@ router.post('/', async (req, res) => {
       ...req.body,
       id: req.body.id || `AP-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       usuarioId,
-      contratoId, // ✅ Asegurar que se guarda
+      contratoId, 
       creadoEn: new Date()
     });
 

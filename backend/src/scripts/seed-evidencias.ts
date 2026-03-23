@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { Evidencia } from '../api/evidencias/model'; // Asumiendo que tienes el modelo
+import { Evidencia } from '../api/evidencias/model'; 
 
 dotenv.config();
 
@@ -21,7 +21,6 @@ const evidenciasIniciales = [
     fecha: new Date(),
     tipo: 'documento'
   },
-  // ... más evidencias según los datos de la imagen
 ];
 
 async function seedEvidencias() {

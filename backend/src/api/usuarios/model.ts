@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 
-// Definir la interfaz para los tokens de Google
 interface IGoogleTokens {
   access_token?: string;
   refresh_token?: string;
@@ -10,13 +9,11 @@ interface IGoogleTokens {
   fecha_conexion?: Date;
 }
 
-// Definir la interfaz para las preferencias
 interface IPreferencias {
   notificaciones: boolean;
   calendarioConectado: boolean;
 }
 
-// Definir la interfaz del documento Usuario
 export interface IUsuario extends mongoose.Document {
   email: string;
   nombre?: string;
@@ -32,7 +29,6 @@ const usuarioSchema = new mongoose.Schema({
   nombre: { type: String },
   supabaseId: { type: String, required: true, unique: true },
   
-  // Tokens de Google Calendar
   googleTokens: {
     access_token: { type: String },
     refresh_token: { type: String },

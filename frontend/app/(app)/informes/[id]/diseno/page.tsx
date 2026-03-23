@@ -24,7 +24,6 @@ import { useContrato } from "@/contexts/contrato-context"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "sonner"
 
-// Configuración por defecto
 const configuracionDefault = {
   id: `temp-${Date.now()}`,
   plantilla: {

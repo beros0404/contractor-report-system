@@ -34,7 +34,7 @@ export function CalendarEvents() {
 
     try {
       setLoading(true)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/events?usuarioId=${user.id}`)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/events?usuarioId=${user.id}`)
       
       if (res.status === 401) {
         const data = await res.json()
@@ -66,7 +66,6 @@ export function CalendarEvents() {
       return
     }
 
-    // Crear descripción prellenada con datos del evento
     const descripcionPrefill = [
       `Reunión: ${evento.summary}`,
       evento.description ? `\n${evento.description}` : '',
@@ -76,7 +75,6 @@ export function CalendarEvents() {
       evento.hangoutLink ? `\nEnlace: ${evento.hangoutLink}` : ''
     ].join('')
 
-    // Redirigir a nuevo aporte con datos prellenados
     router.push(
       `/actividades/nuevo-aporte?contrato=${contratoActivo}&descripcion=${encodeURIComponent(descripcionPrefill)}`
     )

@@ -5,10 +5,9 @@ import { Readable } from 'stream';
 
 const router = Router();
 
-// Configurar multer para manejar archivos en memoria con límite mayor
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+  limits: { fileSize: 20 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('audio/')) {
       cb(null, true);
@@ -18,12 +17,10 @@ const upload = multer({
   }
 });
 
-// Inicializar cliente de AssemblyAI
 const client = new AssemblyAI({
   apiKey: process.env.ASSEMBLYAI_API_KEY || ''
 });
 
-// POST /api/transcripcion - Transcribir audio
 router.post('/', upload.single('audio'), async (req, res) => {
   try {
     console.log('🔍 POST /api/transcripcion - Iniciando transcripción');
@@ -40,7 +37,6 @@ router.post('/', upload.single('audio'), async (req, res) => {
 
     console.log(`📊 Archivo recibido: ${req.file.originalname}, tamaño: ${req.file.size} bytes`);
 
-    // Convertir buffer a stream para enviar a AssemblyAI
     const audioStream = Readable.from(req.file.buffer);
 
     console.log('📡 Enviando a AssemblyAI...');
@@ -70,7 +66,6 @@ router.post('/', upload.single('audio'), async (req, res) => {
   } catch (error: any) {
     console.error('❌ Error en transcripción:', error);
     
-    // Mensaje de error más específico
     let errorMessage = 'Error al transcribir audio';
     if (error.message?.includes('ENAMETOOLONG')) {
       errorMessage = 'El archivo de audio es demasiado grande';

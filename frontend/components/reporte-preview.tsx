@@ -48,7 +48,6 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
     if (!usuarioId || !informe) return
     
     try {
-      // Actualizar el informe con el nuevo resumen
       const actividadesActualizadas = contenido.actividades.map((act: any) => {
         if ((act.actividadId || act.id) === actividadId) {
           return { 
@@ -97,7 +96,6 @@ export function ReportePreview({ informe, carpetasActividades, usuarioId, onResu
       const informeActualizado = await response.json()
       toast.success("Resumen regenerado con IA")
       
-      // Actualizar el estado local (esto debería venir del padre)
       if (onResumenEditado) {
         const actividad = informeActualizado.contenido.actividades.find(
           (a: any) => (a.actividadId || a.id) === actividadId

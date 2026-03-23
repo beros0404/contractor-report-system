@@ -17,7 +17,7 @@ export function EventoForm({ evento, onClose, onSave, onDelete }: EventoFormProp
     summary: evento?.summary || "",
     description: evento?.description || "",
     start: evento?.start ? new Date(evento.start) : new Date(),
-    end: evento?.end ? new Date(evento.end) : new Date(Date.now() + 3600000), // +1 hora
+    end: evento?.end ? new Date(evento.end) : new Date(Date.now() + 3600000), 
     location: evento?.location || "",
     attendees: evento?.attendees?.map((a: any) => a.email).join(", ") || "",
     hangoutLink: evento?.hangoutLink || ""
@@ -26,13 +26,11 @@ export function EventoForm({ evento, onClose, onSave, onDelete }: EventoFormProp
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validar campos requeridos
     if (!form.summary.trim()) {
       alert("El título es requerido")
       return
     }
 
-    // Procesar asistentes
     const attendeesList = form.attendees
       .split(",")
       .map(email => email.trim())

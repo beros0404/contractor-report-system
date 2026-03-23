@@ -49,7 +49,6 @@ export default function InformeDetailPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [carpetasActividades, setCarpetasActividades] = useState<Record<string, string>>({})
   
-  // Estados para firmas
   const [showFirmaModal, setShowFirmaModal] = useState(false)
   const [tipoFirma, setTipoFirma] = useState<'contratista' | 'supervisor'>('contratista')
   const [firmasGuardadas, setFirmasGuardadas] = useState<any[]>([])
@@ -66,7 +65,6 @@ export default function InformeDetailPage() {
       console.log('📋 Actividades:', inf?.contenido?.actividades)
       setInforme(inf)
       
-      // Obtener carpetas de Drive para cada actividad
       if (inf?.contenido?.actividades) {
         const carpetas: Record<string, string> = {}
         for (const actividad of inf.contenido.actividades) {
@@ -94,7 +92,6 @@ export default function InformeDetailPage() {
     }
   }, [informeId, usuarioId])
 
-  // Función para cargar firmas guardadas
   const cargarFirmasGuardadas = async () => {
     if (!usuarioId) return
     try {
@@ -118,7 +115,6 @@ export default function InformeDetailPage() {
       console.log('📝 Guardando firma para:', tipoFirma);
       console.log('📦 firmaData:', firmaData);
   
-      // Crear el objeto de firma
       const firmaObj: any = {
         nombre: tipoFirma === 'contratista' 
           ? informe.contenido.contrato?.contratistaNombre 
@@ -137,7 +133,6 @@ export default function InformeDetailPage() {
         firmaObj.firmaGuardadaId = 'pending';
       }
   
-      // Actualizar el informe con la nueva firma
       const updatedInforme = {
         ...informe,
         contenido: {
@@ -151,11 +146,9 @@ export default function InformeDetailPage() {
   
       console.log('📦 Informe actualizado:', JSON.stringify(updatedInforme, null, 2));
       
-      // Guardar en el backend
       const result = await apiClient.updateInforme(informe.id, updatedInforme, usuarioId);
       console.log('✅ Informe guardado:', result);
       
-      // Si se debe guardar la firma para futuros usos
       if (firmaData.guardar && firmaData.nombre) {
         console.log('📝 Guardando firma en biblioteca...');
         const saveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/firmas`, {
@@ -173,7 +166,6 @@ export default function InformeDetailPage() {
           const firmaGuardada = await saveRes.json();
           console.log('✅ Firma guardada en biblioteca:', firmaGuardada);
           
-          // Actualizar el ID de la firma guardada
           updatedInforme.contenido.firmas[tipoFirma].firmaGuardadaId = firmaGuardada.id;
           await apiClient.updateInforme(informe.id, updatedInforme, usuarioId);
         }
@@ -234,14 +226,12 @@ export default function InformeDetailPage() {
     actualizarEstado("enviado")
   }
 
-  // Función para descargar PDF
   const handleDownload = async () => {
     if (!informe?.id || !usuarioId) {
       toast.error("Informe no disponible");
       return;
     }
     
-    // Verificar datos antes de enviar
     console.log('📊 INFORME COMPLETO:', informe);
     console.log('📊 ACTIVIDADES:', informe.contenido?.actividades);
     console.log('📊 PRIMERA ACTIVIDAD:', informe.contenido?.actividades?.[0]);
@@ -314,10 +304,8 @@ const handleDownloadEvidencias = async () => {
       throw new Error(error.error || 'Error al descargar evidencias');
     }
     
-    // Obtener el blob del ZIP
     const blob = await response.blob();
     
-    // Crear URL para descarga
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

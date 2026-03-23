@@ -99,10 +99,8 @@ export const apiClient = {
     }
   },
 
-  // ========== ACTIVIDADES (CRUD COMPLETO) ==========
   async getActividades(contratoId: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/activities
       const res = await fetch(`${API_URL}/api/activities?usuarioId=${usuarioId}&contratoId=${contratoId}`);
       if (!res.ok) throw new Error('Error al cargar actividades');
       const data = await res.json();
@@ -116,7 +114,6 @@ export const apiClient = {
   async getActividad(id: string, usuarioId: string) {
     try {
       console.log(`🔍 getActividad - id: ${id}, usuarioId: ${usuarioId}`);
-      // ✅ AGREGADO: /api/activities
       const res = await fetch(`${API_URL}/api/activities/${id}?usuarioId=${usuarioId}`);
       if (!res.ok) throw new Error('Error al cargar actividad');
       return res.json();
@@ -128,7 +125,6 @@ export const apiClient = {
 
   async createActividad(actividad: any, usuarioId: string, contratoId: string) {
     try {
-      // ✅ AGREGADO: /api/activities
       const res = await fetch(`${API_URL}/api/activities`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -154,7 +150,6 @@ export const apiClient = {
       console.log('🔍 updateActividad - id:', id, 'usuarioId:', usuarioId);
       console.log('📦 actividad a actualizar:', actividad);
       
-      // ✅ AGREGADO: /api/activities
       const res = await fetch(`${API_URL}/api/activities/${id}?usuarioId=${usuarioId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +178,6 @@ export const apiClient = {
 
   async deleteActividad(id: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/activities
       const res = await fetch(`${API_URL}/api/activities/${id}?usuarioId=${usuarioId}`, {
         method: 'DELETE'
       });
@@ -204,7 +198,6 @@ export const apiClient = {
         return [];
       }
       
-      // ✅ AGREGADO: /api/aportes
       const url = `${API_URL}/api/aportes?usuarioId=${usuarioId}&contratoId=${contratoId}`;
       const res = await fetch(url);
       
@@ -214,13 +207,12 @@ export const apiClient = {
       return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Error cargando aportes:', error);
-      return []; // Devolver array vacío en caso de error
+      return []; 
     }
   },
 
   async getAporte(id: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/aportes
       const res = await fetch(`${API_URL}/api/aportes/${id}?usuarioId=${usuarioId}`);
       if (!res.ok) throw new Error('Error al cargar aporte');
       return res.json();
@@ -233,7 +225,6 @@ export const apiClient = {
   async getAportesByActividad(actividadId: string, usuarioId: string) {
     try {
       console.log(`🔍 getAportesByActividad - actividadId: ${actividadId}, usuarioId: ${usuarioId}`);
-      // ✅ AGREGADO: /api/aportes
       const res = await fetch(`${API_URL}/api/aportes/actividad/${actividadId}?usuarioId=${usuarioId}`);
       if (!res.ok) throw new Error('Error al cargar aportes');
       const data = await res.json();
@@ -248,7 +239,6 @@ export const apiClient = {
     try {
       console.log('🔍 createAporte - aporte:', aporte, 'usuarioId:', usuarioId, 'contratoId:', contratoId);
       
-      // ✅ AGREGADO: /api/aportes
       const res = await fetch(`${API_URL}/api/aportes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -271,7 +261,6 @@ export const apiClient = {
 
   async updateAporte(id: string, aporte: any, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/aportes
       const res = await fetch(`${API_URL}/api/aportes/${id}?usuarioId=${usuarioId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -290,7 +279,6 @@ export const apiClient = {
 
   async deleteAporte(id: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/aportes
       const res = await fetch(`${API_URL}/api/aportes/${id}?usuarioId=${usuarioId}`, {
         method: 'DELETE'
       });
@@ -302,10 +290,8 @@ export const apiClient = {
     }
   },
 
-  // ========== EVIDENCIAS (CRUD COMPLETO) ==========
   async getEvidencias(contratoId: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/evidencias
       const res = await fetch(`${API_URL}/api/evidencias?usuarioId=${usuarioId}&contratoId=${contratoId}`);
       if (!res.ok) throw new Error('Error al cargar evidencias');
       const data = await res.json();
@@ -318,7 +304,6 @@ export const apiClient = {
 
   async getEvidencia(id: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/evidencias
       const res = await fetch(`${API_URL}/api/evidencias/${id}?usuarioId=${usuarioId}`);
       if (!res.ok) throw new Error('Error al cargar evidencia');
       return res.json();
@@ -331,7 +316,6 @@ export const apiClient = {
   async getEvidenciasByActividad(actividadId: string, usuarioId: string) {
     try {
       console.log(`🔍 getEvidenciasByActividad - actividadId: ${actividadId}, usuarioId: ${usuarioId}`);
-      // ✅ AGREGADO: /api/evidencias
       const res = await fetch(`${API_URL}/api/evidencias/actividad/${actividadId}?usuarioId=${usuarioId}`);
       if (!res.ok) throw new Error('Error al cargar evidencias');
       const data = await res.json();
@@ -346,7 +330,6 @@ export const apiClient = {
     try {
       console.log('🔍 createEvidencia - evidencia:', evidencia, 'usuarioId:', usuarioId, 'contratoId:', contratoId);
       
-      // ✅ AGREGADO: /api/evidencias
       const res = await fetch(`${API_URL}/api/evidencias`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -379,7 +362,6 @@ export const apiClient = {
 
   async updateEvidencia(id: string, evidencia: any, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/evidencias
       const res = await fetch(`${API_URL}/api/evidencias/${id}?usuarioId=${usuarioId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -398,7 +380,6 @@ export const apiClient = {
 
   async deleteEvidencia(id: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/evidencias
       const res = await fetch(`${API_URL}/api/evidencias/${id}?usuarioId=${usuarioId}`, {
         method: 'DELETE'
       });
@@ -410,7 +391,6 @@ export const apiClient = {
     }
   },
 
-  // ========== CONFIGURACIÓN POR CONTRATO ==========
   async getConfiguracion(contratoId: string, usuarioId: string) {
     try {
       console.log('🔍 apiClient.getConfiguracion - contratoId:', contratoId, 'usuarioId:', usuarioId);
@@ -419,7 +399,6 @@ export const apiClient = {
         throw new Error('contratoId y usuarioId son requeridos');
       }
       
-      // ✅ AGREGADO: /api/configuracion
       const url = `${API_URL}/api/configuracion?usuarioId=${encodeURIComponent(usuarioId)}&contratoId=${encodeURIComponent(contratoId)}`;
       console.log('📡 Fetching URL:', url);
       
@@ -445,7 +424,6 @@ export const apiClient = {
 
   async updateConfiguracion(contratoId: string, usuarioId: string, configuracion: any) {
     try {
-      // ✅ AGREGADO: /api/configuracion
       const res = await fetch(`${API_URL}/api/configuracion/${contratoId}?usuarioId=${usuarioId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -461,7 +439,6 @@ export const apiClient = {
 
   async resetConfiguracion(contratoId: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/configuracion
       const res = await fetch(`${API_URL}/api/configuracion/${contratoId}/reset?usuarioId=${usuarioId}`, {
         method: 'POST'
       });
@@ -475,7 +452,6 @@ export const apiClient = {
 
   async getInformes(contratoId: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/informes
       const res = await fetch(`${API_URL}/api/informes?usuarioId=${usuarioId}&contratoId=${contratoId}`);
       if (!res.ok) throw new Error('Error al cargar informes');
       const data = await res.json();
@@ -488,7 +464,6 @@ export const apiClient = {
 
   async getInforme(id: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/informes
       const res = await fetch(`${API_URL}/api/informes/${id}?usuarioId=${usuarioId}`);
       if (!res.ok) throw new Error('Error al cargar informe');
       return res.json();
@@ -500,7 +475,6 @@ export const apiClient = {
 
   async createInforme(data: any) {
     try {
-      // ✅ AGREGADO: /api/informes
       const res = await fetch(`${API_URL}/api/informes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -519,7 +493,6 @@ export const apiClient = {
       console.log('🔍 updateInforme - id:', id, 'usuarioId:', usuarioId);
       console.log('📦 informe a actualizar:', JSON.stringify(informe, null, 2));
       
-      // ✅ AGREGADO: /api/informes
       const res = await fetch(`${API_URL}/api/informes/${id}?usuarioId=${usuarioId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -545,7 +518,6 @@ export const apiClient = {
   
   async deleteInforme(id: string, usuarioId: string) {
     try {
-      // ✅ AGREGADO: /api/informes
       const res = await fetch(`${API_URL}/api/informes/${id}?usuarioId=${usuarioId}`, {
         method: 'DELETE'
       });
@@ -558,8 +530,7 @@ export const apiClient = {
   },
 };
 
-// ========== EXPORTACIONES INDIVIDUALES ==========
-// (Estas NO necesitan cambios, ya usan apiClient)
+
 export const getContratos = () => apiClient.getContratos();
 export const getContrato = (id: string) => apiClient.getContrato(id);
 export const getContratosPorUsuario = (usuarioId: string) => apiClient.getContratosPorUsuario(usuarioId);

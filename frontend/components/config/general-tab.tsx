@@ -25,7 +25,6 @@ export function GeneralTab({ onSave }: GeneralTabProps) {
   const [resetting, setResetting] = useState(false)
   const [showReset, setShowReset] = useState(false)
   
-  // Estados para conexiones
   const [calendarStatus, setCalendarStatus] = useState<{
     conectado: boolean;
     loading: boolean;
@@ -70,7 +69,6 @@ export function GeneralTab({ onSave }: GeneralTabProps) {
 
   const verificarConexiones = async () => {
     try {
-      // Verificar Calendar
       try {
         console.log('📡 Verificando Calendar...')
         const calendarRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/status?usuarioId=${usuarioId}`)
@@ -102,10 +100,9 @@ export function GeneralTab({ onSave }: GeneralTabProps) {
         })
       }
 
-      // Verificar Drive
       try {
         console.log('📡 Verificando Drive...')
-        const driveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/drive/status?usuarioId=${usuarioId}`)
+        const driveRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/drive/status?usuarioId=${usuarioId}`)
         console.log('📡 Drive response status:', driveRes.status)
         
         if (driveRes.ok) {
@@ -140,16 +137,16 @@ export function GeneralTab({ onSave }: GeneralTabProps) {
   }
 
   const conectarCalendar = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google/auth?usuarioId=${usuarioId}&redirect=/configuracion`
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/auth?usuarioId=${usuarioId}&redirect=/configuracion`
   }
 
   const conectarDrive = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google/drive/auth?usuarioId=${usuarioId}&redirect=/configuracion`
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/drive/auth?usuarioId=${usuarioId}&redirect=/configuracion`
   }
 
   const desconectarCalendar = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/disconnect`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/disconnect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuarioId })
@@ -168,7 +165,7 @@ export function GeneralTab({ onSave }: GeneralTabProps) {
 
   const desconectarDrive = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google/drive/disconnect`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/drive/disconnect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuarioId })

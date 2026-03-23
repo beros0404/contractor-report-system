@@ -10,7 +10,7 @@ const informeSchema = new mongoose.Schema({
     required: true 
   },
   periodo: {
-    mes: { type: Number, required: true }, // 1-12
+    mes: { type: Number, required: true }, 
     año: { type: Number, required: true },
     fechaInicio: { type: Date, required: true },
     fechaFin: { type: Date, required: true },
@@ -34,7 +34,7 @@ const informeSchema = new mongoose.Schema({
       contratistaProfesion: String,
       supervisorNombre: String,
       supervisorCargo: String,
-      lugarFirma: { type: String, default: 'Rionegro' } // ✅ Agregar lugarFirma
+      lugarFirma: { type: String, default: 'Rionegro' } 
     },
     actividades: [{
       actividadId: String,
