@@ -1,0 +1,272 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Informe de Ejecución</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #34495e;
+      margin-top: 30px;
+      border-bottom: 1px solid #bdc3c7;
+      padding-bottom: 5px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .info-item {
+      margin-bottom: 10px;
+    }
+    .info-label {
+      font-weight: bold;
+      color: #7f8c8d;
+      font-size: 0.9em;
+    }
+    .info-value {
+      font-size: 1.1em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      padding: 10px;
+      text-align: left;
+    }
+    td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      vertical-align: top;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .actividad-titulo {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .actividad-descripcion {
+      font-size: 0.9em;
+      color: #666;
+    }
+    .aporte-item {
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px dashed #ddd;
+    }
+    .aporte-item:last-child {
+      border-bottom: none;
+    }
+    .aporte-fecha {
+      font-size: 0.8em;
+      color: #7f8c8d;
+    }
+    .evidencia-item {
+      margin-bottom: 3px;
+      font-size: 0.9em;
+    }
+    .firma {
+      margin-top: 50px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+      text-align: center;
+    }
+    .firma-line {
+      margin-top: 10px;
+      border-top: 1px solid #000;
+      width: 100%;
+    }
+    .firma-imagen {
+      max-height: 60px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 0.9em;
+      color: #7f8c8d;
+    }
+    .sin-datos {
+      text-align: center;
+      color: #999;
+      font-style: italic;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>INFORME DE EJECUCIÓN PARCIAL</h1>
+  <p style="text-align: center;">OFICINA UNIDAD ESTRATEGICA DE NEGOCIOS ITM</p>
+
+  <h2>Información del Contrato</h2>
+  <div class="info-grid">
+    <div class="info-item">
+      <div class="info-label">NOMBRE DEL CONTRATISTA</div>
+      <div class="info-value">Valentina Bernal</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">NÚMERO DEL CONTRATO</div>
+      <div class="info-value">Contrato 2</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">FECHA DE INICIO</div>
+      <div class="info-value">31 de enero de 2026</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">FECHA DE FIN</div>
+      <div class="info-value">30 de mayo de 2026</div>
+    </div>
+    <div class="info-item" style="grid-column: span 2;">
+      <div class="info-label">OBJETO</div>
+      <div class="info-value">probar el contrato </div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">VALOR DEL CONTRATO</div>
+      <div class="info-value">$ 3.500.000</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">SUPERVISOR ITM</div>
+      <div class="info-value">Bruno</div>
+    </div>
+  </div>
+
+  <h2>PERIODO EJECUTADO</h2>
+  <p>Del 1 de marzo de 2026 al 31 de marzo de 2026</p>
+
+  <h2>EJECUCIÓN DE ACTIVIDADES</h2>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Actividad</th>
+        <th>Resumen de Aportes</th>
+        <th>Evidencias</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="align-top">
+          <p class="actividad-descripcion">Realizar acompañamiento empresarial y asesorías en innovación a emprendedores, grupos de investigación y/o empresarios en el marco de la Ruta de Innovación</p>
+        </td>
+        <td class="align-top">
+            <p>Se realizaron 2 aportes durante el período del 21/3/2026 al 1/3/2026, incluyendo: arstdyfkjg,kmhngbfvdc, reunión: reunión 2
+fecha: 2 de marzo de 2026hora: 17:30 - 18:30.</p>
+        </td>
+        <td class="align-top">
+            <ul style="margin: 0; padding-left: 20px;">
+              <li class="evidencia-item">Nota</li>
+              <li class="evidencia-item">WhatsApp Image 2026-03-19 at 5.48.45 PM.jpeg</li>
+            </ul>
+        </td>
+      </tr>
+      <tr>
+        <td class="align-top">
+          <p class="actividad-descripcion">Formular, ejecutar y monitorear actividades, proyectos y/o programas de formación y capacitación en beneficio de la comunidad</p>
+        </td>
+        <td class="align-top">
+            <p>Se realizaron 3 aportes durante el período del 9/3/2026 al 28/2/2026, incluyendo: se realizó la convocatoria, confirmación y acompañamiento de 50 emprendedores para la sexta jornada de capacitación. se realizaron llamadas de recordatorio, se enviaron correos con la agenda y los enlaces de conexión, y se gestionó el registro de asistencia durante el evento, asegurando una participación del 85% de los convocados., se realizó la preparación y despliegue de la capacitación &quot;incubación en indicadores estratégicos para empresarios&quot;. se diseñó la presentación en powerpoint, se prepararon los casos de estudio y se ejecutó el taller el 26 de noviembre con 35 empresarios de la etapa de incubación, quienes aprendieron a definir kpis para sus negocios., se proyectó la sexta jornada de capacitaciones de nodo 360° con los aliados de la estrategia (sena, cámara de comercio, universidades). la jornada, realizada entre el 24 y 28 de noviembre, incluyó 3 talleres simultáneos (ideación, incubación y aceleración) con una asistencia total de 120 emprendedores. se gestionaron las piezas gráficas con el equipo de comunicaciones y se enviaron las convocatorias personalizadas..</p>
+        </td>
+        <td class="align-top">
+            <em class="sin-datos">Sin evidencias</em>
+        </td>
+      </tr>
+      <tr>
+        <td class="align-top">
+          <p class="actividad-descripcion">Formular, ejecutar y monitorear la Estrategia de Innovación Abierta.</p>
+        </td>
+        <td class="align-top">
+            <p>Se realizaron 3 aportes durante el período del 9/3/2026 al 4/3/2026, incluyendo: se coordinó una mesa de trabajo con 5 empresas del sector energético para explorar la aplicación de retos de innovación abierta. se presentó la metodología, se recogieron 12 problemáticas específicas del sector y se definieron los términos de referencia para lanzar una convocatoria de soluciones abierta a startups y universidades en el próximo trimestre., se apoyó la presentación de nodo 360° en la visita de los estudiantes del colegio de adultos mayores de la uco y comfama. se diseñó un formato interactivo para la resolución de problemas empresariales, permitiendo a los visitantes aplicar los conceptos de innovación abierta a casos reales de empresas locales., se apoyó la visita académica de la universidad de la guajira, preparando una presentación sobre el modelo de innovación abierta aplicado en el territorio. se compartió la metodología de los retos de innovación y se facilitó una sesión de co-creación con los estudiantes para resolver problemáticas identificadas en su región de origen..</p>
+        </td>
+        <td class="align-top">
+            <em class="sin-datos">Sin evidencias</em>
+        </td>
+      </tr>
+      <tr>
+        <td class="align-top">
+          <p class="actividad-descripcion">Formular, ejecutar y monitorear proyectos de cooperación local, nacional e internacional.</p>
+        </td>
+        <td class="align-top">
+            <p>Se realizaron 3 aportes durante el período del 9/3/2026 al 24/2/2026, incluyendo: se gestionó la participación del señor alcalde jorge humberto rivas urrea en el &quot;vii foro iberoamericano de la pyme&quot; en tenerife, españa, en el marco del memorandum de entendimiento con el cabildo de tenerife. se coordinó la agenda, los pasajes y la logística para la comitiva, resultando en la firma de una carta de intención para futuros intercambios comerciales y académicos entre ambas regiones., se realizaron dos reuniones virtuales con la cámara de comercio de lima (perú) para explorar oportunidades de cooperación en materia de innovación abierta. se compartió la metodología de la ruta de innovación y se acordó un plan de trabajo para el próximo trimestre que incluye un webinar conjunto y la participación de emprendedores peruanos en las actividades de nodo 360°., se apoyó la formulación de una propuesta de cooperación internacional con la unión europea, a través del programa erasmus+ para jóvenes emprendedores. se recopiló información de 15 emprendimientos locales interesados en realizar pasantías en países europeos y se diligenciaron los formatos requeridos por la convocatoria, que fue presentada en la fecha límite del 30 de noviembre..</p>
+        </td>
+        <td class="align-top">
+            <em class="sin-datos">Sin evidencias</em>
+        </td>
+      </tr>
+      <tr>
+        <td class="align-top">
+          <p class="actividad-descripcion">Apoyar en la realización de eventos y/o actividades logísticas en beneficio de la innovación.</p>
+        </td>
+        <td class="align-top">
+            <p>No se registraron aportes para esta actividad en el período.</p>
+        </td>
+        <td class="align-top">
+            <em class="sin-datos">Sin evidencias</em>
+        </td>
+      </tr>
+      <tr>
+        <td class="align-top">
+          <p class="actividad-descripcion">Desarrollar las demás funciones que le sean requeridas por la Secretaria de Desarrollo Económico (y la Subsecretaría de Juventud Innovadora)&quot;</p>
+        </td>
+        <td class="align-top">
+            <p>Se realizaron 3 aportes durante el período del 9/3/2026 al 13/1/2026, incluyendo: se apoyó la logística y ejecución de un taller de prototipado rápido para los proyectos seleccionados de la cátedra de emprendimiento. se gestionaron los materiales (cartulinas, marcadores, plastilina) y se facilitó el espacio en el coworklab para que 8 equipos de estudiantes construyeran sus primeros prototipos., se asistió a la reunión de coordinación para la segunda sesión de la cátedra de emprendimiento y se prepararon los materiales pedagógicos. posteriormente, se ejecutó la sesión con los estudiantes, donde trabajaron en la validación de sus ideas a través de encuestas aplicadas a 100 personas en la comunidad educativa., se realizó el despliegue de la primera sesión de la cátedra de emprendimiento en la i.e baldomero sanín cano, impactando a 45 estudiantes de grado once. la sesión se centró en la generación de ideas de negocio y la identificación de problemáticas del entorno, utilizando la metodología de design thinking adaptada para jóvenes..</p>
+        </td>
+        <td class="align-top">
+            <em class="sin-datos">Sin evidencias</em>
+        </td>
+      </tr>
+      <tr>
+        <td class="align-top">
+          <p class="actividad-descripcion">Y las demás actividades de acuerdo con el objeto del contrato</p>
+        </td>
+        <td class="align-top">
+            <p>Se realizó hola el día 1/3/2026.</p>
+        </td>
+        <td class="align-top">
+            <ul style="margin: 0; padding-left: 20px;">
+              <li class="evidencia-item">postcss.config.mjs</li>
+            </ul>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>FIRMAS</h2>
+  <div class="firma">
+    <div>
+        <div class="firma-line"></div>
+      <p><strong>Valentina Bernal</strong></p>
+      <p>C.C. Por definir</p>
+      <p style="font-size: 0.9em; color: #666;">Firma del Contratista</p>
+    </div>
+    <div>
+        <div class="firma-line"></div>
+      <p><strong>Bruno</strong></p>
+      <p>Ingeniero</p>
+      <p style="font-size: 0.9em; color: #666;">Firma del Supervisor</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Para constancia se firma en La Unión a los 31 días del mes de marzo de 2026.</p>
+  </div>
+</body>
+</html>

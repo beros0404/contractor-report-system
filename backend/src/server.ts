@@ -12,6 +12,8 @@ import transcripcionRoutes from './api/transcripcion/routes';
 import googleAuthRoutes from './api/auth/google/routes';
 import googleDriveRoutes from './api/auth/google/drive.routes';
 import informePdfRoutes from './api/informes/pdf.routes';
+import configuracionInformeRouter from './api/configuracion-informe/routes';
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -83,6 +85,8 @@ app.use('/api/transcripcion', transcripcionRoutes);
 app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/auth/google/drive', googleDriveRoutes);
 app.use('/api/informes', informePdfRoutes);
+app.use('/api/configuracion-informe', configuracionInformeRouter);
+
 
 app.use('*', (req, res) => {
   console.log(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);

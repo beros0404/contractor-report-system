@@ -9,7 +9,6 @@ const usuarioSchema = new mongoose_1.default.Schema({
     email: { type: String, required: true },
     nombre: { type: String },
     supabaseId: { type: String, required: true, unique: true },
-    // Tokens de Google Calendar
     googleTokens: {
         access_token: { type: String },
         refresh_token: { type: String },

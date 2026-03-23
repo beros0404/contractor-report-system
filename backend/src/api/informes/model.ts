@@ -22,20 +22,26 @@ const informeSchema = new mongoose.Schema({
     default: 'borrador'
   },
   contenido: {
-    contrato: {
-      numero: String,
-      entidad: String,
-      objeto: String,
-      fechaInicio: Date,
-      fechaFin: Date,
-      valor: Number,
-      contratistaNombre: String,
-      contratistaCedula: String,
-      contratistaProfesion: String,
-      supervisorNombre: String,
-      supervisorCargo: String,
-      lugarFirma: { type: String, default: 'Rionegro' } 
-    },
+   contrato: {
+  numero: String,
+  entidad: String,
+  dependenciaContratante: String,
+  objeto: String,
+  fechaInicio: Date,
+  fechaFin: Date,
+  valor: Number,
+  contratistaNombre: String,
+  contratistaCedula: String,
+  contratistaProfesion: String,
+  supervisorNombre: String,
+  supervisorCargo: String,
+  lugarFirma: { type: String, default: 'Rionegro' }
+},
+plantillaSocial: {
+  numero: { type: String, default: '' },
+  administrador: { type: String, default: '' },
+  otroAdministrador: { type: String, default: '' }
+},
     actividades: [{
       actividadId: String,
       titulo: String,

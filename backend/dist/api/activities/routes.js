@@ -11,9 +11,8 @@ router.get('/:id', async (req, res) => {
         if (!usuarioId) {
             return res.status(400).json({ error: 'usuarioId es requerido' });
         }
-        // Buscar por el campo 'id' personalizado, no por _id
         const actividad = await model_1.Activity.findOne({
-            id: id, // Buscar por el campo 'id' personalizado
+            id: id,
             usuarioId: usuarioId.toString()
         });
         if (!actividad) {
@@ -28,7 +27,6 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener actividad' });
     }
 });
-// PUT /api/activities/:id?usuarioId=xxx
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -41,7 +39,6 @@ router.put('/:id', async (req, res) => {
         if (!usuarioId) {
             return res.status(400).json({ error: 'usuarioId es requerido' });
         }
-        // Buscar la actividad
         const actividadExistente = await model_1.Activity.findOne({
             id: id,
             usuarioId: usuarioId.toString()
@@ -98,7 +95,6 @@ router.post('/', async (req, res) => {
         if (!usuarioId || !contratoId) {
             return res.status(400).json({ error: 'usuarioId y contratoId son requeridos' });
         }
-        // Obtener el último número de actividad para este contrato
         const ultimaActividad = await model_1.Activity.findOne({ contratoId })
             .sort({ numero: -1 })
             .select('numero');

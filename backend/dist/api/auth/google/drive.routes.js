@@ -1,8 +1,4 @@
 "use strict";
-import { Router } from 'express';
-import { google } from 'googleapis';
-import { Usuario } from '../../usuarios/model';
-
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const googleapis_1 = require("googleapis");
@@ -28,7 +24,6 @@ async function refreshTokenIfNeeded(usuario) {
     }
     return usuario.googleTokens;
 }
-// Iniciar autenticación de Drive
 router.get('/auth', (req, res) => {
     try {
         const { usuarioId, redirect } = req.query;
@@ -53,7 +48,6 @@ router.get('/auth', (req, res) => {
         res.status(500).json({ error: 'Error al conectar con Google Drive' });
     }
 });
-// Callback de Drive
 router.get('/callback', async (req, res) => {
     try {
         const { code, state } = req.query;
@@ -62,7 +56,6 @@ router.get('/callback', async (req, res) => {
         }
         const { usuarioId, redirect } = JSON.parse(state);
         const { tokens } = await oauth2Client.getToken(code);
-        // Actualizar o crear tokens para Drive (podemos usar el mismo campo googleTokens)
         await model_1.Usuario.findOneAndUpdate({ supabaseId: usuarioId }, {
             googleTokens: tokens,
             'preferencias.driveConectado': true
@@ -74,7 +67,6 @@ router.get('/callback', async (req, res) => {
         res.redirect(`${process.env.FRONTEND_URL}/configuracion?drive=error`);
     }
 });
-// Verificar estado de Drive
 router.get('/status', async (req, res) => {
     try {
         const { usuarioId } = req.query;
@@ -85,7 +77,6 @@ router.get('/status', async (req, res) => {
         if (!usuario?.googleTokens?.access_token) {
             return res.json({ conectado: false });
         }
-        // Verificar si el token tiene los scopes de Drive
         const tieneScopeDrive = usuario.googleTokens.scope?.includes('drive.file') || false;
         res.json({
             conectado: tieneScopeDrive,
@@ -97,14 +88,12 @@ router.get('/status', async (req, res) => {
         res.status(500).json({ error: 'Error al verificar estado' });
     }
 });
-// Desconectar Drive
 router.post('/disconnect', async (req, res) => {
     try {
         const { usuarioId } = req.body;
         if (!usuarioId) {
             return res.status(400).json({ error: 'usuarioId requerido' });
         }
-        // Solo removemos los tokens de Drive (opcionalmente podemos mantener Calendar)
         await model_1.Usuario.findOneAndUpdate({ supabaseId: usuarioId }, {
             $unset: { googleTokens: 1 },
             'preferencias.driveConectado': false

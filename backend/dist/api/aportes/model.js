@@ -21,7 +21,6 @@ const aporteSchema = new mongoose_1.default.Schema({
     evidenciaIds: [String],
     creadoEn: { type: Date, default: Date.now }
 });
-// Índices compuestos para búsquedas eficientes
 aporteSchema.index({ usuarioId: 1, contratoId: 1 });
 aporteSchema.index({ actividadId: 1, usuarioId: 1 });
 exports.Aporte = mongoose_1.default.model('Aporte', aporteSchema);

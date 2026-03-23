@@ -5,12 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const model_1 = require("./model");
-const puppeteer_1 = __importDefault(require("puppeteer"));
+const html_pdf_node_1 = require("html-pdf-node");
 const handlebars_1 = __importDefault(require("handlebars"));
 const date_fns_1 = require("date-fns");
 const locale_1 = require("date-fns/locale");
 const router = (0, express_1.Router)();
-// Helper de Handlebars para formatear fechas
+// Helpers de Handlebars
 handlebars_1.default.registerHelper('formatDate', function (date, formatStr) {
     if (!date)
         return 'Fecha no disponible';
@@ -30,7 +30,6 @@ handlebars_1.default.registerHelper('formatCurrency', function (valor) {
         minimumFractionDigits: 0
     }).format(valor);
 });
-// Helper para obtener el día de una fecha
 handlebars_1.default.registerHelper('getDay', function (date) {
     if (!date)
         return '__';
@@ -41,7 +40,6 @@ handlebars_1.default.registerHelper('getDay', function (date) {
         return '__';
     }
 });
-// Helper para obtener el mes y año de una fecha
 handlebars_1.default.registerHelper('getMonthYear', function (date) {
     if (!date)
         return '__________';
@@ -52,7 +50,11 @@ handlebars_1.default.registerHelper('getMonthYear', function (date) {
         return '__________';
     }
 });
-// Plantilla HTML del informe - IGUAL A ReportePreview
+// Helper para comparar si es "Otro"
+handlebars_1.default.registerHelper('eq', function (a, b) {
+    return a === b;
+});
+// Plantilla HTML actualizada con nuevos campos
 const templateHTML = `
 <!DOCTYPE html>
 <html>
@@ -94,6 +96,18 @@ const templateHTML = `
     .info-value {
       font-size: 1.1em;
     }
+    .security-social {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .security-social h3 {
+      margin-top: 0;
+      color: #2c3e50;
+      font-size: 1.1em;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -113,10 +127,6 @@ const templateHTML = `
     tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-    .actividad-titulo {
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
     .actividad-descripcion {
       font-size: 0.9em;
       color: #666;
@@ -125,9 +135,6 @@ const templateHTML = `
       margin-bottom: 10px;
       padding-bottom: 5px;
       border-bottom: 1px dashed #ddd;
-    }
-    .aporte-item:last-child {
-      border-bottom: none;
     }
     .aporte-fecha {
       font-size: 0.8em;
@@ -170,7 +177,7 @@ const templateHTML = `
 </head>
 <body>
   <h1>{{titulo}}</h1>
-  <p style="text-align: center;">OFICINA UNIDAD ESTRATEGICA DE NEGOCIOS ITM</p>
+  <p style="text-align: center;">{{dependenciaContratante}}</p>
 
   <h2>Información del Contrato</h2>
   <div class="info-grid">
@@ -199,10 +206,35 @@ const templateHTML = `
       <div class="info-value">{{formatCurrency contrato.valor}}</div>
     </div>
     <div class="info-item">
-      <div class="info-label">SUPERVISOR ITM</div>
+      <div class="info-label">SUPERVISOR {{contrato.entidad}}</div>
       <div class="info-value">{{contrato.supervisorNombre}}</div>
+      {{#if contrato.supervisorCargo}}
+        <div class="info-value" style="font-size: 0.9em; color: #666;">{{contrato.supervisorCargo}}</div>
+      {{/if}}
     </div>
   </div>
+
+  {{#if plantillaSocial.numero}}
+  <div class="security-social">
+    <h3>Seguridad Social</h3>
+    <div class="info-grid" style="margin: 0;">
+      <div class="info-item">
+        <div class="info-label">Número de plantilla social</div>
+        <div class="info-value">{{plantillaSocial.numero}}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Administrador de plantilla</div>
+        <div class="info-value">
+          {{#if (eq plantillaSocial.administrador "Otro")}}
+            {{plantillaSocial.otroAdministrador}}
+          {{else}}
+            {{plantillaSocial.administrador}}
+          {{/if}}
+        </div>
+      </div>
+    </div>
+  </div>
+  {{/if}}
 
   <h2>PERIODO EJECUTADO</h2>
   <p>Del {{formatDate periodo.fechaInicio "d 'de' MMMM 'de' yyyy"}} al {{formatDate periodo.fechaFin "d 'de' MMMM 'de' yyyy"}}</p>
@@ -210,17 +242,17 @@ const templateHTML = `
   <h2>EJECUCIÓN DE ACTIVIDADES</h2>
   
   {{#if actividades.length}}
-  <table>
+   <table>
     <thead>
-      <tr>
+       <tr>
         <th>Actividad</th>
         <th>Resumen de Aportes</th>
         <th>Evidencias</th>
-      </tr>
+       </tr>
     </thead>
     <tbody>
       {{#each actividades}}
-      <tr>
+       <tr>
         <td class="align-top">
           <p class="actividad-descripcion">{{this.descripcion}}</p>
         </td>
@@ -242,10 +274,10 @@ const templateHTML = `
             <em class="sin-datos">Sin evidencias</em>
           {{/if}}
         </td>
-      </tr>
+       </tr>
       {{/each}}
     </tbody>
-  </table>
+   </table>
   {{else}}
   <p class="sin-datos">No hay actividades registradas en este período</p>
   {{/if}}
@@ -286,9 +318,8 @@ const templateHTML = `
 </body>
 </html>
 `;
-// Compilar la plantilla
 const template = handlebars_1.default.compile(templateHTML);
-// GET /api/informes/:id/pdf
+// Endpoint para generar PDF
 router.get('/:id/pdf', async (req, res) => {
     try {
         const { id } = req.params;
@@ -297,7 +328,6 @@ router.get('/:id/pdf', async (req, res) => {
         if (!usuarioId) {
             return res.status(400).json({ error: 'usuarioId requerido' });
         }
-        // Obtener el informe
         const informe = await model_1.Informe.findOne({
             id: id,
             usuarioId: usuarioId.toString()
@@ -308,9 +338,15 @@ router.get('/:id/pdf', async (req, res) => {
         if (!informe.contenido) {
             return res.status(400).json({ error: 'El informe no tiene contenido' });
         }
-        // Preparar datos para la plantilla - MISMA ESTRUCTURA QUE ReportePreview
+        // Obtener datos del contrato y plantilla social con valores seguros
+        const plantillaSocialData = informe.contenido?.plantillaSocial || {
+            numero: '',
+            administrador: '',
+            otroAdministrador: ''
+        };
         const data = {
             titulo: informe.tipo === 'mensual' ? 'INFORME DE EJECUCIÓN MENSUAL' : 'INFORME DE EJECUCIÓN PARCIAL',
+            dependenciaContratante: informe.contenido.contrato?.dependenciaContratante,
             contrato: {
                 contratistaNombre: informe.contenido.contrato?.contratistaNombre || 'No especificado',
                 numero: informe.contenido.contrato?.numero || 'No especificado',
@@ -319,9 +355,15 @@ router.get('/:id/pdf', async (req, res) => {
                 objeto: informe.contenido.contrato?.objeto || 'No especificado',
                 valor: informe.contenido.contrato?.valor || 0,
                 supervisorNombre: informe.contenido.contrato?.supervisorNombre || 'No especificado',
+                supervisorCargo: informe.contenido.contrato?.supervisorCargo || '',
                 contratistaCedula: informe.contenido.contrato?.contratistaCedula || 'No especificada',
-                supervisorCargo: informe.contenido.contrato?.supervisorCargo || 'No especificado',
-                lugarFirma: informe.contenido.contrato?.lugarFirma || 'Rionegro'
+                lugarFirma: informe.contenido.contrato?.lugarFirma || 'Rionegro',
+                entidad: informe.contenido.contrato?.entidad || ''
+            },
+            plantillaSocial: {
+                numero: plantillaSocialData.numero || '',
+                administrador: plantillaSocialData.administrador || '',
+                otroAdministrador: plantillaSocialData.otroAdministrador || ''
             },
             periodo: {
                 fechaInicio: informe.periodo?.fechaInicio || new Date().toISOString(),
@@ -345,17 +387,13 @@ router.get('/:id/pdf', async (req, res) => {
                 }
             }
         };
-        console.log('📊 Datos para PDF - actividades:', data.actividades.length);
+        console.log('📊 Generando PDF para actividades:', data.actividades.length);
+        console.log('📊 Dependencia:', data.dependenciaContratante);
+        console.log('📊 Plantilla Social:', data.plantillaSocial.numero || 'No definida');
         // Generar HTML
         const html = template(data);
-        const browser = await puppeteer_1.default.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
-        // Generar PDF
-        const pdf = await page.pdf({
+        // Opciones para html-pdf-node
+        const options = {
             format: 'A4',
             printBackground: true,
             margin: {
@@ -364,18 +402,22 @@ router.get('/:id/pdf', async (req, res) => {
                 left: '40px',
                 right: '40px'
             }
-        });
-        await browser.close();
+        };
+        // Generar PDF
+        const pdfBuffer = await (0, html_pdf_node_1.generatePdf)({ content: html }, options);
         const año = informe.periodo?.año || new Date().getFullYear();
         const mes = informe.periodo?.mes || new Date().getMonth() + 1;
         const mesStr = mes.toString().padStart(2, '0');
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=informe-${año}-${mesStr}.pdf`);
-        res.send(pdf);
+        res.send(pdfBuffer);
     }
     catch (error) {
         console.error('❌ Error generando PDF:', error);
-        res.status(500).json({ error: 'Error al generar PDF' });
+        res.status(500).json({
+            error: 'Error al generar PDF',
+            details: error.message
+        });
     }
 });
 exports.default = router;

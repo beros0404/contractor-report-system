@@ -16,6 +16,7 @@ const routes_7 = __importDefault(require("./api/transcripcion/routes"));
 const routes_8 = __importDefault(require("./api/auth/google/routes"));
 const drive_routes_1 = __importDefault(require("./api/auth/google/drive.routes"));
 const pdf_routes_1 = __importDefault(require("./api/informes/pdf.routes"));
+const routes_9 = __importDefault(require("./api/configuracion-informe/routes"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
 const allowedOrigins = [
@@ -78,6 +79,7 @@ app.use('/api/transcripcion', routes_7.default);
 app.use('/api/auth/google', routes_8.default);
 app.use('/api/auth/google/drive', drive_routes_1.default);
 app.use('/api/informes', pdf_routes_1.default);
+app.use('/api/configuracion-informe', routes_9.default);
 app.use('*', (req, res) => {
     console.log(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);
     res.status(404).json({

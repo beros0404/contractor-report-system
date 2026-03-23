@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const model_1 = require("./model");
 const router = (0, express_1.Router)();
-// GET /api/aportes?usuarioId=xxx&contratoId=xxx
 router.get('/', async (req, res) => {
     try {
         const { usuarioId, contratoId } = req.query;
@@ -23,7 +22,6 @@ router.get('/', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener aportes' });
     }
 });
-// GET /api/aportes/actividad/:actividadId?usuarioId=xxx
 router.get('/actividad/:actividadId', async (req, res) => {
     try {
         const { actividadId } = req.params;
@@ -44,7 +42,6 @@ router.get('/actividad/:actividadId', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener aportes' });
     }
 });
-// POST /api/aportes
 router.post('/', async (req, res) => {
     try {
         const { usuarioId, contratoId, actividadId } = req.body;
@@ -56,7 +53,7 @@ router.post('/', async (req, res) => {
             ...req.body,
             id: req.body.id || `AP-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
             usuarioId,
-            contratoId, // ✅ Asegurar que se guarda
+            contratoId,
             creadoEn: new Date()
         });
         await nuevoAporte.save();

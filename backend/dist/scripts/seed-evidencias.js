@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const dotenv_1 = __importDefault(require("dotenv"));
-const model_1 = require("../api/evidencias/model"); // Asumiendo que tienes el modelo
+const model_1 = require("../api/evidencias/model");
 dotenv_1.default.config();
 const evidenciasIniciales = [
     {
@@ -24,7 +24,6 @@ const evidenciasIniciales = [
         fecha: new Date(),
         tipo: 'documento'
     },
-    // ... más evidencias según los datos de la imagen
 ];
 async function seedEvidencias() {
     try {

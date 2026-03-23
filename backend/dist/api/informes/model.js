@@ -15,7 +15,7 @@ const informeSchema = new mongoose_1.default.Schema({
         required: true
     },
     periodo: {
-        mes: { type: Number, required: true }, // 1-12
+        mes: { type: Number, required: true },
         año: { type: Number, required: true },
         fechaInicio: { type: Date, required: true },
         fechaFin: { type: Date, required: true },
@@ -30,6 +30,7 @@ const informeSchema = new mongoose_1.default.Schema({
         contrato: {
             numero: String,
             entidad: String,
+            dependenciaContratante: String,
             objeto: String,
             fechaInicio: Date,
             fechaFin: Date,
@@ -39,7 +40,12 @@ const informeSchema = new mongoose_1.default.Schema({
             contratistaProfesion: String,
             supervisorNombre: String,
             supervisorCargo: String,
-            lugarFirma: { type: String, default: 'Rionegro' } // ✅ Agregar lugarFirma
+            lugarFirma: { type: String, default: 'Rionegro' }
+        },
+        plantillaSocial: {
+            numero: { type: String, default: '' },
+            administrador: { type: String, default: '' },
+            otroAdministrador: { type: String, default: '' }
         },
         actividades: [{
                 actividadId: String,

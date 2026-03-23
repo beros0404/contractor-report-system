@@ -8,10 +8,9 @@ const multer_1 = __importDefault(require("multer"));
 const assemblyai_1 = require("assemblyai");
 const stream_1 = require("stream");
 const router = (0, express_1.Router)();
-// Configurar multer para manejar archivos en memoria con límite mayor
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
-    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+    limits: { fileSize: 20 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('audio/')) {
             cb(null, true);
@@ -21,11 +20,9 @@ const upload = (0, multer_1.default)({
         }
     }
 });
-// Inicializar cliente de AssemblyAI
 const client = new assemblyai_1.AssemblyAI({
     apiKey: process.env.ASSEMBLYAI_API_KEY || ''
 });
-// POST /api/transcripcion - Transcribir audio
 router.post('/', upload.single('audio'), async (req, res) => {
     try {
         console.log('🔍 POST /api/transcripcion - Iniciando transcripción');
@@ -38,7 +35,6 @@ router.post('/', upload.single('audio'), async (req, res) => {
             return res.status(500).json({ error: 'API Key de AssemblyAI no configurada' });
         }
         console.log(`📊 Archivo recibido: ${req.file.originalname}, tamaño: ${req.file.size} bytes`);
-        // Convertir buffer a stream para enviar a AssemblyAI
         const audioStream = stream_1.Readable.from(req.file.buffer);
         console.log('📡 Enviando a AssemblyAI...');
         const transcript = await client.transcripts.transcribe({
@@ -61,7 +57,6 @@ router.post('/', upload.single('audio'), async (req, res) => {
     }
     catch (error) {
         console.error('❌ Error en transcripción:', error);
-        // Mensaje de error más específico
         let errorMessage = 'Error al transcribir audio';
         if (error.message?.includes('ENAMETOOLONG')) {
             errorMessage = 'El archivo de audio es demasiado grande';

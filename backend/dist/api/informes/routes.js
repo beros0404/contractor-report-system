@@ -90,7 +90,6 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Faltan datos requeridos' });
         }
         console.log('🤖 Generando resúmenes con IA...');
-        // Generar resúmenes con OpenAI
         const actividadesConResumen = await (0, openai_service_1.generarResumenMultiple)(actividades);
         const fechaInicio = new Date(año, mes - 1, 1);
         const fechaFin = new Date(año, mes, 0);
@@ -111,6 +110,11 @@ router.post('/', async (req, res) => {
             estado: 'borrador',
             contenido: {
                 contrato,
+                plantillaSocial: {
+                    numero: contrato.numeroPlantillaSocial || '',
+                    administrador: contrato.administradorPlantilla || '',
+                    otroAdministrador: contrato.otroAdministradorPlantilla || ''
+                },
                 actividades: actividadesConResumen,
                 firmas: {
                     contratista: {

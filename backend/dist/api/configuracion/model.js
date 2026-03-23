@@ -38,6 +38,5 @@ const configuracionSchema = new mongoose_1.default.Schema({
         updatedAt: 'actualizadoEn'
     }
 });
-// Solo mantener índices necesarios
 configuracionSchema.index({ usuarioId: 1, contratoId: 1 });
 exports.Configuracion = mongoose_1.default.model('Configuracion', configuracionSchema);

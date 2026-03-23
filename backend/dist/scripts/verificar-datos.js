@@ -11,11 +11,9 @@ async function verificarDatos() {
     try {
         await mongoose_1.default.connect(process.env.MONGODB_URI);
         console.log('✅ Conectado a MongoDB');
-        // Verificar aportes por usuario
-        const usuarioId = 'e475df86-bf65-48fc-89a3-a299d009f0c7'; // Reemplaza con tu usuarioId
+        const usuarioId = 'e475df86-bf65-48fc-89a3-a299d009f0c7';
         const aportes = await model_1.Aporte.find({ usuarioId });
         console.log(`\n📊 Total aportes para usuario ${usuarioId}: ${aportes.length}`);
-        // Agrupar por contrato
         const porContrato = {};
         aportes.forEach(ap => {
             porContrato[ap.contratoId] = (porContrato[ap.contratoId] || 0) + 1;
@@ -24,7 +22,6 @@ async function verificarDatos() {
         Object.entries(porContrato).forEach(([contratoId, count]) => {
             console.log(`   - Contrato ${contratoId}: ${count} aportes`);
         });
-        // Verificar si hay aportes sin contratoId
         const sinContrato = await model_1.Aporte.find({ contratoId: { $exists: false } });
         if (sinContrato.length > 0) {
             console.log(`\n⚠️ Hay ${sinContrato.length} aportes sin contratoId`);

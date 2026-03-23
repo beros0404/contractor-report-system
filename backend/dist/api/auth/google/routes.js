@@ -1,7 +1,4 @@
 "use strict";
-import { Router } from 'express';
-import { google } from 'googleapis';
-import { Usuario } from '../../usuarios/model';
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const googleapis_1 = require("googleapis");
@@ -11,7 +8,9 @@ const oauth2Client = new googleapis_1.google.auth.OAuth2(process.env.GOOGLE_CLIE
 const SCOPES = [
     'https://www.googleapis.com/auth/calendar.readonly',
     'https://www.googleapis.com/auth/calendar.events',
-    'https://www.googleapis.com/auth/calendar'
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/drive.appdata'
 ];
 async function refreshTokenIfNeeded(usuario) {
     if (!usuario.googleTokens)
@@ -55,7 +54,7 @@ router.get('/auth', (req, res) => {
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: 'offline',
             scope: SCOPES,
-            prompt: 'consent', // Importante: force consent para pedir nuevos permisos
+            prompt: 'consent',
             state
         });
         res.redirect(authUrl);
@@ -63,6 +62,30 @@ router.get('/auth', (req, res) => {
     catch (error) {
         console.error('❌ Error en auth:', error);
         res.status(500).json({ error: 'Error al conectar con Google Calendar' });
+    }
+});
+router.get('/scopes', async (req, res) => {
+    try {
+        const { usuarioId } = req.query;
+        if (!usuarioId) {
+            return res.status(400).json({ error: 'usuarioId requerido' });
+        }
+        const usuario = await model_1.Usuario.findOne({ supabaseId: usuarioId });
+        if (!usuario?.googleTokens?.access_token) {
+            return res.json({ hasTokens: false });
+        }
+        const scopes = usuario.googleTokens.scope?.split(' ') || [];
+        res.json({
+            hasTokens: true,
+            scopes,
+            hasCalendarScope: scopes.some(s => s.includes('calendar')),
+            hasDriveScope: scopes.some(s => s.includes('drive')),
+            expiryDate: usuario.googleTokens.expiry_date
+        });
+    }
+    catch (error) {
+        console.error('❌ Error verificando scopes:', error);
+        res.status(500).json({ error: 'Error al verificar scopes' });
     }
 });
 router.get('/callback', async (req, res) => {
@@ -91,101 +114,100 @@ router.get('/callback', async (req, res) => {
         res.redirect(`${process.env.FRONTEND_URL}/configuracion-inicial?calendar=error`);
     }
 });
-// Agrega este endpoint antes del `export default router`
 router.get('/events', async (req, res) => {
-  try {
-    const { usuarioId, timeMin, timeMax } = req.query;
-    
-    console.log('🔍 GET /api/auth/google/events - usuarioId:', usuarioId);
-    console.log('📅 timeMin:', timeMin);
-    console.log('📅 timeMax:', timeMax);
-    
-    if (!usuarioId) {
-      return res.status(400).json({ error: 'usuarioId requerido' });
+    try {
+        const { usuarioId, timeMin, timeMax } = req.query;
+        console.log('🔍 GET /api/auth/google/events - usuarioId:', usuarioId);
+        console.log('📅 timeMin:', timeMin);
+        console.log('📅 timeMax:', timeMax);
+        if (!usuarioId) {
+            return res.status(400).json({ error: 'usuarioId requerido' });
+        }
+        const usuario = await model_1.Usuario.findOne({ supabaseId: usuarioId });
+        console.log('📦 Usuario encontrado:', usuario ? 'sí' : 'no');
+        if (!usuario?.googleTokens?.access_token) {
+            console.log('❌ Usuario no tiene tokens de Google');
+            return res.status(401).json({ error: 'No autorizado', needsAuth: true });
+        }
+        console.log('✅ Tokens encontrados, access_token presente');
+        oauth2Client.setCredentials({
+            access_token: usuario.googleTokens.access_token,
+            refresh_token: usuario.googleTokens.refresh_token,
+            expiry_date: usuario.googleTokens.expiry_date
+        });
+        if (usuario.googleTokens.expiry_date &&
+            usuario.googleTokens.expiry_date < Date.now()) {
+            console.log('🔄 Token expirado, refrescando...');
+            try {
+                const { credentials } = await oauth2Client.refreshAccessToken();
+                oauth2Client.setCredentials(credentials);
+                await model_1.Usuario.findOneAndUpdate({ supabaseId: usuarioId }, { googleTokens: credentials });
+                console.log('✅ Token refrescado');
+            }
+            catch (refreshError) {
+                console.error('❌ Error refrescando token:', refreshError);
+                return res.status(401).json({ error: 'Token expirado, reconecta Google Calendar' });
+            }
+        }
+        const calendar = googleapis_1.google.calendar({ version: 'v3', auth: oauth2Client });
+        let timeMinDate;
+        let timeMaxDate;
+        if (timeMin && timeMax) {
+            timeMinDate = new Date(timeMin);
+            timeMaxDate = new Date(timeMax);
+        }
+        else {
+            const now = new Date();
+            timeMinDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            timeMaxDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        }
+        console.log('📅 Buscando eventos desde:', timeMinDate.toISOString());
+        console.log('📅 hasta:', timeMaxDate.toISOString());
+        const response = await calendar.events.list({
+            calendarId: 'primary',
+            timeMin: timeMinDate.toISOString(),
+            timeMax: timeMaxDate.toISOString(),
+            maxResults: 250,
+            singleEvents: true,
+            orderBy: 'startTime'
+        });
+        console.log(`✅ ${response.data.items?.length || 0} eventos encontrados`);
+        const eventos = (response.data.items || []).map(event => ({
+            id: event.id,
+            summary: event.summary || 'Sin título',
+            description: event.description || '',
+            start: event.start?.dateTime || event.start?.date,
+            end: event.end?.dateTime || event.end?.date,
+            location: event.location || '',
+            attendees: event.attendees?.map(a => a.email) || [],
+            hangoutLink: event.hangoutLink || null
+        }));
+        res.json({ eventos });
     }
-
-    // Buscar usuario y sus tokens
-    const usuario = await Usuario.findOne({ supabaseId: usuarioId as string });
-    
-    if (!usuario?.googleTokens?.access_token) {
-      console.log('❌ Usuario no tiene tokens de Google');
-      return res.status(401).json({ error: 'No autorizado', needsAuth: true });
+    catch (error) {
+        console.error('❌ Error detallado obteniendo eventos:');
+        console.error('   - Mensaje:', error.message);
+        console.error('   - Stack:', error.stack);
+        if (error.response?.data) {
+            console.error('   - Respuesta de Google:', error.response.data);
+        }
+        let statusCode = 500;
+        let errorMessage = 'Error al obtener eventos';
+        if (error.message?.includes('invalid_grant')) {
+            statusCode = 401;
+            errorMessage = 'Token inválido o expirado. Reconecta Google Calendar';
+        }
+        else if (error.message?.includes('access_token')) {
+            statusCode = 401;
+            errorMessage = 'Token de acceso inválido. Reconecta Google Calendar';
+        }
+        res.status(statusCode).json({
+            error: errorMessage,
+            details: error.message,
+            needsAuth: statusCode === 401
+        });
     }
-
-    // Configurar cliente OAuth2
-    oauth2Client.setCredentials({
-      access_token: usuario.googleTokens.access_token,
-      refresh_token: usuario.googleTokens.refresh_token,
-      expiry_date: usuario.googleTokens.expiry_date
-    });
-    
-    // Refrescar token si es necesario
-    if (usuario.googleTokens.expiry_date && 
-        usuario.googleTokens.expiry_date < Date.now()) {
-      console.log('🔄 Refrescando token...');
-      const { credentials } = await oauth2Client.refreshAccessToken();
-      oauth2Client.setCredentials(credentials);
-      
-      await Usuario.findOneAndUpdate(
-        { supabaseId: usuarioId },
-        { googleTokens: credentials }
-      );
-    }
-    
-    // Crear cliente de Calendar
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    
-    // Determinar rango de fechas
-    let timeMinDate: Date;
-    let timeMaxDate: Date;
-    
-    if (timeMin && timeMax) {
-      timeMinDate = new Date(timeMin as string);
-      timeMaxDate = new Date(timeMax as string);
-    } else {
-      // Default: mes actual
-      const now = new Date();
-      timeMinDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      timeMaxDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    }
-    
-    console.log('📅 Buscando eventos desde:', timeMinDate.toISOString());
-    console.log('📅 hasta:', timeMaxDate.toISOString());
-    
-    const response = await calendar.events.list({
-      calendarId: 'primary',
-      timeMin: timeMinDate.toISOString(),
-      timeMax: timeMaxDate.toISOString(),
-      maxResults: 250,
-      singleEvents: true,
-      orderBy: 'startTime'
-    });
-    
-    console.log(`✅ ${response.data.items?.length || 0} eventos encontrados`);
-    
-    // Formatear eventos
-    const eventos = (response.data.items || []).map(event => ({
-      id: event.id,
-      summary: event.summary || 'Sin título',
-      description: event.description || '',
-      start: event.start?.dateTime || event.start?.date,
-      end: event.end?.dateTime || event.end?.date,
-      location: event.location || '',
-      attendees: event.attendees?.map(a => a.email) || [],
-      hangoutLink: event.hangoutLink || null
-    }));
-    
-    res.json({ eventos });
-    
-  } catch (error: any) {
-    console.error('❌ Error obteniendo eventos:', error);
-    res.status(500).json({ 
-      error: 'Error al obtener eventos',
-      details: error.message
-    });
-  }
 });
-
 router.post('/events', async (req, res) => {
     try {
         const { usuarioId, evento } = req.body;

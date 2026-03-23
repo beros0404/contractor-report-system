@@ -139,6 +139,11 @@ router.post('/', async (req, res) => {
       estado: 'borrador',
       contenido: {
         contrato,
+        plantillaSocial: {
+      numero: contrato.numeroPlantillaSocial || '',
+      administrador: contrato.administradorPlantilla || '',
+      otroAdministrador: contrato.otroAdministradorPlantilla || ''
+    },
         actividades: actividadesConResumen,
         firmas: {
           contratista: {

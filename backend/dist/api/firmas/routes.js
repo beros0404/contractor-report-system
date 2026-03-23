@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const model_1 = require("./model");
 const router = (0, express_1.Router)();
-// GET /api/firmas?usuarioId=xxx&tipo=contratista
 router.get('/', async (req, res) => {
     try {
         const { usuarioId, tipo } = req.query;
@@ -22,7 +21,6 @@ router.get('/', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener firmas' });
     }
 });
-// POST /api/firmas
 router.post('/', async (req, res) => {
     try {
         const { usuarioId, nombre, imagen, tipo } = req.body;
@@ -44,7 +42,6 @@ router.post('/', async (req, res) => {
         res.status(500).json({ error: 'Error al guardar firma' });
     }
 });
-// PUT /api/firmas/:id/usar
 router.put('/:id/usar', async (req, res) => {
     try {
         const { id } = req.params;
