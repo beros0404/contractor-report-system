@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Calendar, Calendar as BigCalendar, dateFnsLocalizer, Views } from "react-big-calendar"
-import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth } from "date-fns"
+import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns"
 import { es } from "date-fns/locale"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import { PageHeader } from "@/components/page-header"
@@ -10,7 +10,8 @@ import { VistaTabla } from "@/components/calendario/vista-tabla"
 import { EventoForm } from "@/components/calendario/evento-form"
 import { useAuth } from "@/contexts/auth-context"
 import { useContrato } from "@/contexts/contrato-context"
-import { Calendar as CalendarIcon, Table, Plus, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Calendar as CalendarIcon, Table, Plus, Loader2, PlusCircle } from "lucide-react"
 import { toast } from "sonner"
 
 const localizer = dateFnsLocalizer({
@@ -21,14 +22,54 @@ const localizer = dateFnsLocalizer({
   locales: { es }
 })
 
-const EventoCalendario = ({ event }: any) => (
-  <div className="p-1 text-xs overflow-hidden">
-    <strong>{event.title}</strong>
-    {event.location && <div className="text-xs opacity-75">📍 {event.location}</div>}
-  </div>
-)
+// Componente personalizado para eventos con botón de crear aporte
+const EventoCalendario = ({ event }: any) => {
+  const router = useRouter()
+  const { contratoActivo } = useContrato()
+
+  const handleRegistrarAporte = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    if (!contratoActivo) {
+      toast.error("Selecciona un contrato activo primero")
+      return
+    }
+
+    const descripcionPrefill = [
+      `Reunión: ${event.title || event.summary}`,
+      event.description ? `\n${event.description}` : '',
+      `\nFecha: ${format(new Date(event.start), "d 'de' MMMM 'de' yyyy", { locale: es })}`,
+      `Hora: ${format(new Date(event.start), "HH:mm")} - ${format(new Date(event.end), "HH:mm")}`,
+      event.location ? `\nLugar: ${event.location}` : '',
+      event.hangoutLink ? `\nEnlace: ${event.hangoutLink}` : ''
+    ].join('')
+
+    router.push(
+      `/actividades/nuevo-aporte?contrato=${contratoActivo}&descripcion=${encodeURIComponent(descripcionPrefill)}`
+    )
+  }
+
+  return (
+    <div className="group relative p-1 text-xs overflow-hidden hover:bg-primary/5 rounded transition-colors">
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex-1 truncate">
+          <strong>{event.title || event.summary}</strong>
+          {event.location && <div className="text-xs opacity-75 truncate">📍 {event.location}</div>}
+        </div>
+        <button
+          onClick={handleRegistrarAporte}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-primary/20 text-primary shrink-0"
+          title="Registrar aporte"
+        >
+          <PlusCircle className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function CalendarioPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const { contratoActivo } = useContrato()
   const [vista, setVista] = useState<'calendario' | 'tabla'>('calendario')
@@ -37,6 +78,10 @@ export default function CalendarioPage() {
   const [showForm, setShowForm] = useState(false)
   const [eventoSeleccionado, setEventoSeleccionado] = useState<any>(null)
   const [fechaActual, setFechaActual] = useState(new Date())
+  const [rangoActual, setRangoActual] = useState<{ start: Date; end: Date }>({
+    start: startOfMonth(new Date()),
+    end: endOfMonth(new Date())
+  })
 
   const cargarEventos = useCallback(async (inicio?: Date, fin?: Date) => {
     if (!user?.id) {
@@ -48,8 +93,8 @@ export default function CalendarioPage() {
     try {
       setLoading(true)
       
-      const timeMin = inicio || startOfMonth(fechaActual)
-      const timeMax = fin || endOfMonth(fechaActual)
+      const timeMin = inicio || rangoActual.start
+      const timeMax = fin || rangoActual.end
       
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
       const url = new URL(`${baseUrl}/api/auth/google/events`)
@@ -58,20 +103,14 @@ export default function CalendarioPage() {
       url.searchParams.append('timeMax', timeMax.toISOString())
       
       console.log('📅 Cargando eventos desde:', timeMin.toISOString(), 'hasta:', timeMax.toISOString())
-      console.log('📡 URL completa:', url.toString())
       
       const res = await fetch(url.toString())
-      console.log('📊 Status code:', res.status)
       
-      // Obtener la respuesta como texto para debug
       const responseText = await res.text()
-      console.log('📄 Respuesta raw (primeros 500 chars):', responseText.substring(0, 500))
       
-      // Intentar parsear como JSON
       let data
       try {
         data = JSON.parse(responseText)
-        console.log('📦 Datos parseados:', data)
       } catch (parseError) {
         console.error('❌ Error parseando JSON:', parseError)
         setEventos([])
@@ -79,14 +118,13 @@ export default function CalendarioPage() {
         return
       }
       
-      // Manejar error 401 (no autenticado)
       if (res.status === 401) {
         if (data?.needsAuth) {
           toast.error("Conecta tu calendario de Google en configuración", {
             duration: 5000,
             action: {
               label: "Configurar",
-              onClick: () => window.location.href = '/configuracion?tab=integraciones'
+              onClick: () => router.push('/configuracion?tab=integraciones')
             }
           })
         } else {
@@ -96,7 +134,6 @@ export default function CalendarioPage() {
         return
       }
       
-      // Manejar otros errores HTTP
       if (!res.ok) {
         console.error('❌ Error HTTP:', res.status, data)
         toast.error(data?.error || data?.details || `Error ${res.status} al cargar eventos`)
@@ -104,46 +141,20 @@ export default function CalendarioPage() {
         return
       }
       
-      // Validar estructura de datos
-      if (!data || typeof data !== 'object') {
-        console.error('❌ Respuesta inválida:', data)
-        toast.error('Formato de respuesta inválido')
+      if (!data?.eventos || !Array.isArray(data.eventos)) {
         setEventos([])
         return
       }
       
-      // Verificar que eventos existe y es un array
-      if (!data.eventos) {
-        console.warn('⚠️ La respuesta no tiene campo "eventos":', data)
-        setEventos([])
-        return
-      }
-      
-      if (!Array.isArray(data.eventos)) {
-        console.error('❌ "eventos" no es un array:', data.eventos)
-        toast.error('Formato de eventos inválido')
-        setEventos([])
-        return
-      }
-      
-      // Formatear eventos con validaciones
       const eventosFormateados = data.eventos.map((evento: any, index: number) => {
-        // Validar fechas
         let startDate, endDate
         try {
           startDate = evento.start ? new Date(evento.start) : new Date()
           endDate = evento.end ? new Date(evento.end) : new Date(startDate.getTime() + 3600000)
           
-          if (isNaN(startDate.getTime())) {
-            console.warn('Fecha de inicio inválida:', evento.start)
-            startDate = new Date()
-          }
-          if (isNaN(endDate.getTime())) {
-            console.warn('Fecha de fin inválida:', evento.end)
-            endDate = new Date(startDate.getTime() + 3600000)
-          }
+          if (isNaN(startDate.getTime())) startDate = new Date()
+          if (isNaN(endDate.getTime())) endDate = new Date(startDate.getTime() + 3600000)
         } catch (e) {
-          console.error('Error procesando fechas:', e)
           startDate = new Date()
           endDate = new Date(Date.now() + 3600000)
         }
@@ -164,10 +175,6 @@ export default function CalendarioPage() {
       console.log(`✅ ${eventosFormateados.length} eventos cargados correctamente`)
       setEventos(eventosFormateados)
       
-      if (eventosFormateados.length === 0) {
-        toast.info('No hay eventos en el período seleccionado')
-      }
-      
     } catch (error) {
       console.error("❌ Error cargando eventos:", error)
       toast.error(error instanceof Error ? error.message : "Error al cargar eventos")
@@ -175,9 +182,9 @@ export default function CalendarioPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, fechaActual])
+  }, [user?.id, rangoActual, router])
 
-  // Efecto para cargar eventos cuando cambia el usuario o la fecha
+  // Efecto para cargar eventos cuando cambia el usuario o el rango
   useEffect(() => {
     if (user?.id) {
       cargarEventos()
@@ -204,7 +211,7 @@ export default function CalendarioPage() {
               duration: 8000,
               action: {
                 label: 'Conectar',
-                onClick: () => window.location.href = '/configuracion?tab=integraciones'
+                onClick: () => router.push('/configuracion?tab=integraciones')
               }
             })
           }
@@ -215,10 +222,14 @@ export default function CalendarioPage() {
     }
     
     verificarConexionGoogle()
-  }, [user?.id])
+  }, [user?.id, router])
 
   const handleNavigate = (nuevaFecha: Date) => {
     setFechaActual(nuevaFecha)
+    // Actualizar el rango cuando se navega a otro mes
+    const nuevoInicio = startOfMonth(nuevaFecha)
+    const nuevoFin = endOfMonth(nuevaFecha)
+    setRangoActual({ start: nuevoInicio, end: nuevoFin })
   }
 
   const handleSelectEvent = (evento: any) => {
@@ -238,8 +249,6 @@ export default function CalendarioPage() {
         return
       }
   
-      console.log('📝 Datos del formulario:', eventoData)
-  
       const eventoToSave = {
         summary: eventoData.summary,
         description: eventoData.description,
@@ -250,48 +259,33 @@ export default function CalendarioPage() {
         hangoutLink: eventoData.hangoutLink || ""
       }
   
-      console.log('📦 Enviando al backend:', JSON.stringify(eventoToSave, null, 2))
-  
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
       const url = eventoSeleccionado?.id 
         ? `${baseUrl}/api/auth/google/events/${eventoSeleccionado.id}`
         : `${baseUrl}/api/auth/google/events`
       
       const method = eventoSeleccionado?.id ? 'PUT' : 'POST'
-      
-      console.log('📡 URL:', url)
-      console.log('📡 Method:', method)
   
       const response = await fetch(url, {
         method,
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          usuarioId: user.id, 
-          evento: eventoToSave 
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioId: user.id, evento: eventoToSave })
       })
       
-      console.log('📡 Response status:', response.status)
-      
       const responseText = await response.text()
-      console.log('📦 Response text:', responseText)
       
       let responseData
       try {
         responseData = JSON.parse(responseText)
       } catch (e) {
-        console.log('📦 No es JSON válido')
+        // No es JSON
       }
       
       if (!response.ok) {
         const errorMsg = responseData?.error || responseData?.details || responseText || `Error ${response.status}`
-        console.error('❌ Error del servidor:', errorMsg)
         throw new Error(errorMsg)
       }
       
-      // Formatear el evento para el estado local
       const nuevoEventoFormateado = {
         ...responseData,
         start: new Date(responseData.start),
@@ -300,9 +294,7 @@ export default function CalendarioPage() {
       }
       
       if (eventoSeleccionado?.id) {
-        setEventos(eventos.map(ev => 
-          ev.id === eventoSeleccionado.id ? nuevoEventoFormateado : ev
-        ))
+        setEventos(eventos.map(ev => ev.id === eventoSeleccionado.id ? nuevoEventoFormateado : ev))
         toast.success("Evento actualizado")
       } else {
         setEventos([...eventos, nuevoEventoFormateado])
@@ -313,7 +305,7 @@ export default function CalendarioPage() {
       setEventoSeleccionado(null)
       
     } catch (error: any) {
-      console.error("❌ Error completo:", error)
+      console.error("❌ Error:", error)
       toast.error(error.message || "Error al guardar evento")
     }
   }
@@ -345,7 +337,26 @@ export default function CalendarioPage() {
     }
   }
 
-  // Mostrar estado de carga
+  const handleRegistrarAporteEvento = (evento: any) => {
+    if (!contratoActivo) {
+      toast.error("Selecciona un contrato activo primero")
+      return
+    }
+
+    const descripcionPrefill = [
+      `Reunión: ${evento.title || evento.summary}`,
+      evento.description ? `\n${evento.description}` : '',
+      `\nFecha: ${format(new Date(evento.start), "d 'de' MMMM 'de' yyyy", { locale: es })}`,
+      `Hora: ${format(new Date(evento.start), "HH:mm")} - ${format(new Date(evento.end), "HH:mm")}`,
+      evento.location ? `\nLugar: ${evento.location}` : '',
+      evento.hangoutLink ? `\nEnlace: ${evento.hangoutLink}` : ''
+    ].join('')
+
+    router.push(
+      `/actividades/nuevo-aporte?contrato=${contratoActivo}&descripcion=${encodeURIComponent(descripcionPrefill)}`
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col gap-6 p-6">
@@ -457,6 +468,7 @@ export default function CalendarioPage() {
               eventos={eventos}
               onEdit={handleSelectEvent}
               onDelete={handleDeleteEvento}
+              onRegistrarAporte={handleRegistrarAporteEvento}
             />
           )}
         </>

@@ -5,7 +5,7 @@ import { Calendar, Clock, MapPin, Users, Link as LinkIcon, PlusCircle } from "lu
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { useContrato } from "@/contexts/contrato-context"
-import { format } from "date-fns"
+import { format, startOfDay, endOfDay, addDays } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
 import { CalendarConnect } from "./calendar-connect"
@@ -34,7 +34,20 @@ export function CalendarEvents() {
 
     try {
       setLoading(true)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/events?usuarioId=${user.id}`)
+      
+      // Obtener eventos del día actual y el siguiente
+      const hoyInicio = startOfDay(new Date())
+      const mananaFin = endOfDay(addDays(new Date(), 1))
+      
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+      const url = new URL(`${baseUrl}/api/auth/google/events`)
+      url.searchParams.append('usuarioId', user.id)
+      url.searchParams.append('timeMin', hoyInicio.toISOString())
+      url.searchParams.append('timeMax', mananaFin.toISOString())
+      
+      console.log('📅 Cargando eventos desde:', hoyInicio.toISOString(), 'hasta:', mananaFin.toISOString())
+      
+      const res = await fetch(url.toString())
       
       if (res.status === 401) {
         const data = await res.json()
@@ -45,7 +58,16 @@ export function CalendarEvents() {
       }
       
       const data = await res.json()
-      setEventos(data.eventos || [])
+      
+      // Filtrar solo eventos del día actual y siguiente
+      const eventosFiltrados = (data.eventos || []).filter((evento: any) => {
+        const fechaEvento = new Date(evento.start)
+        const hoy = startOfDay(new Date())
+        const manana = endOfDay(addDays(new Date(), 1))
+        return fechaEvento >= hoy && fechaEvento <= manana
+      })
+      
+      setEventos(eventosFiltrados)
       setNeedsAuth(false)
       
     } catch (error) {
@@ -58,6 +80,9 @@ export function CalendarEvents() {
 
   useEffect(() => {
     cargarEventos()
+    // Recargar cada 5 minutos para mantener actualizado
+    const interval = setInterval(cargarEventos, 5 * 60 * 1000)
+    return () => clearInterval(interval)
   }, [user?.id])
 
   const handleRegistrarAporte = (evento: Evento) => {
@@ -76,7 +101,7 @@ export function CalendarEvents() {
     ].join('')
 
     router.push(
-      `/actividades/nuevo-aporte?contrato=${contratoActivo}&descripcion=${encodeURIComponent(descripcionPrefill)}`
+      `/actividades/nuevo-aporte?descripcion=${encodeURIComponent(descripcionPrefill)}`
     )
   }
 
@@ -109,7 +134,7 @@ export function CalendarEvents() {
     return (
       <div className="bg-card border border-border rounded-lg p-6">
         <p className="text-sm text-muted-foreground text-center">
-          No hay reuniones programadas para hoy
+          No hay reuniones programadas para hoy o mañana
         </p>
       </div>
     )
@@ -119,79 +144,92 @@ export function CalendarEvents() {
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-foreground">
-          Reuniones de hoy ({eventos.length})
+          Próximas reuniones ({eventos.length})
         </h3>
         <CalendarConnect onConnected={cargarEventos} />
       </div>
 
-      {eventos.map((evento) => (
-        <div
-          key={evento.id}
-          className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-medium text-foreground mb-1">
-                {evento.summary}
-              </h4>
-              
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>
-                    {format(new Date(evento.start), "HH:mm")} - {format(new Date(evento.end), "HH:mm")}
-                  </span>
+      {eventos.map((evento) => {
+        const fechaEvento = new Date(evento.start)
+        const esHoy = format(fechaEvento, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+        
+        return (
+          <div
+            key={evento.id}
+            className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="text-sm font-medium text-foreground">
+                    {evento.summary}
+                  </h4>
+                  {esHoy && (
+                    <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full">
+                      Hoy
+                    </span>
+                  )}
                 </div>
                 
-                {evento.location && (
+                <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    <span className="truncate">{evento.location}</span>
-                  </div>
-                )}
-                
-                {evento.attendees.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    <span className="truncate">
-                      {evento.attendees.slice(0, 3).join(', ')}
-                      {evento.attendees.length > 3 && ` +${evento.attendees.length - 3}`}
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      {format(new Date(evento.start), "HH:mm")} - {format(new Date(evento.end), "HH:mm")}
+                      {!esHoy && ` (${format(fechaEvento, "EEE d MMM", { locale: es })})`}
                     </span>
                   </div>
-                )}
-                
-                {evento.hangoutLink && (
-                  <div className="flex items-center gap-1">
-                    <LinkIcon className="h-3 w-3" />
-                    <a
-                      href={evento.hangoutLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline truncate"
-                    >
-                      Enlace Meet
-                    </a>
-                  </div>
+                  
+                  {evento.location && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      <span className="truncate">{evento.location}</span>
+                    </div>
+                  )}
+                  
+                  {evento.attendees.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      <span className="truncate">
+                        {evento.attendees.slice(0, 3).join(', ')}
+                        {evento.attendees.length > 3 && ` +${evento.attendees.length - 3}`}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {evento.hangoutLink && (
+                    <div className="flex items-center gap-1">
+                      <LinkIcon className="h-3 w-3" />
+                      <a
+                        href={evento.hangoutLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline truncate"
+                      >
+                        Enlace Meet
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {evento.description && (
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                    {evento.description}
+                  </p>
                 )}
               </div>
 
-              {evento.description && (
-                <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                  {evento.description}
-                </p>
-              )}
+              <button
+                onClick={() => handleRegistrarAporte(evento)}
+                className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors text-xs font-medium"
+              >
+                <PlusCircle className="h-3 w-3" />
+                Registrar
+              </button>
             </div>
-
-            <button
-              onClick={() => handleRegistrarAporte(evento)}
-              className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors text-xs font-medium"
-            >
-              <PlusCircle className="h-3 w-3" />
-              Registrar
-            </button>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
