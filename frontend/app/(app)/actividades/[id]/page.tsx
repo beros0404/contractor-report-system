@@ -46,7 +46,7 @@ export default function ActividadDetailPage() {
     try {
       setLoading(true)
       console.log("📡 Cargando actividad:", actividadId, "usuario:", usuarioId)
-      
+
       const act = await apiClient.getActividad(actividadId, usuarioId!)
       console.log("✅ Actividad cargada:", act)
       setActividad(act)
@@ -75,47 +75,47 @@ export default function ActividadDetailPage() {
     console.log('📌 usuarioId:', usuarioId);
     console.log('📌 tituloEditado:', tituloEditado);
     console.log('📌 descripcionEditada:', descripcionEditada);
-    
+
     if (!actividad || !usuarioId) {
       console.error('❌ Falta actividad o usuarioId');
       toast.error('Error: No se pudo identificar la actividad o usuario');
       return;
     }
-  
+
     try {
       setLoading(true)
-      
+
       const datosActualizados: any = {}
-      
+
       if (tituloEditado !== actividad.titulo) {
         datosActualizados.titulo = tituloEditado
       }
-      
+
       if (descripcionEditada !== actividad.descripcion) {
         datosActualizados.descripcion = descripcionEditada
       }
-      
+
       console.log('📦 Datos a actualizar:', datosActualizados)
-      
+
       if (Object.keys(datosActualizados).length === 0) {
         console.log('ℹ️ No hay cambios para guardar')
         setEditando(false)
         toast.info("No hay cambios para guardar")
         return
       }
-      
+
       console.log('📡 Enviando petición a API...')
       console.log('   URL:', `${process.env.NEXT_PUBLIC_API_URL}/activities/${actividad.id}?usuarioId=${usuarioId}`)
       console.log('   Body:', datosActualizados)
-      
+
       const resultado = await apiClient.updateActividad(actividad.id, datosActualizados, usuarioId)
-      
+
       console.log('✅ Respuesta del servidor:', resultado)
-      
+
       setActividad({ ...actividad, ...datosActualizados })
       setEditando(false)
       toast.success("Actividad actualizada")
-      
+
     } catch (error: any) {
       console.error('❌ Error en handleGuardarEdicion:', error)
       console.error('   Mensaje:', error.message)
@@ -167,7 +167,7 @@ export default function ActividadDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Volver a actividades
         </Link>
-        
+
         {!editando && (
           <button
             onClick={() => setEditando(true)}
@@ -220,22 +220,22 @@ export default function ActividadDetailPage() {
                 Cancelar
               </button>
               <button
-  onClick={handleGuardarEdicion}
-  disabled={loading}
-  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm flex items-center gap-2"
->
-  {loading ? (
-    <>
-      <Loader2 className="h-4 w-4 animate-spin" />
-      Guardando...
-    </>
-  ) : (
-    <>
-      <Save className="h-4 w-4" />
-      Guardar cambios
-    </>
-  )}
-</button>
+                onClick={handleGuardarEdicion}
+                disabled={loading}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Guardar cambios
+                  </>
+                )}
+              </button>
             </div>
           </div>
         ) : (
@@ -244,7 +244,7 @@ export default function ActividadDetailPage() {
             <p className="text-muted-foreground mt-2">{actividad.descripcion}</p>
           </>
         )}
-        
+
         <div className="flex gap-4 mt-4 text-sm">
           <span className="px-2 py-1 bg-primary/10 text-primary rounded-full">
             Peso: {actividad.porcentajePeso || 0}%
@@ -262,14 +262,8 @@ export default function ActividadDetailPage() {
           <div className="bg-card border border-border rounded-lg p-4 sticky top-6">
             <h2 className="font-semibold mb-4">Registrar nuevo aporte</h2>
             <AporteForm actividadId={actividadId} onSuccess={cargarDatos} />
-            
-            <div className="mt-6">
-              <h3 className="text-sm font-medium mb-3">Agregar evidencias</h3>
-              <EvidenciaUpload 
-                actividadId={actividadId}
-                onSuccess={cargarDatos}
-              />
-            </div>
+
+
           </div>
         </div>
 
@@ -293,14 +287,14 @@ export default function ActividadDetailPage() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium">
-                            {format(parseISO(aporte.fecha), "d 'de' MMMM, yyyy", { locale: es })}
+                            {format(new Date(aporte.fecha), "d 'de' MMMM, yyyy", { locale: es })}
                           </p>
                           <span className="text-xs px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full">
                             {aporte.estado}
                           </span>
                         </div>
                         <p className="text-sm text-foreground mt-1">{aporte.descripcion}</p>
-                        
+
                         {/* Evidencias del aporte */}
                         {aporte.evidenciaIds && aporte.evidenciaIds.length > 0 && (
                           <div className="mt-2 space-y-1">
@@ -312,9 +306,9 @@ export default function ActividadDetailPage() {
                                   {getIconoEvidencia(ev.tipo)}
                                   <span className="text-muted-foreground">{ev.nombre}</span>
                                   {ev.drive?.url && (
-                                    <a 
-                                      href={ev.drive.url} 
-                                      target="_blank" 
+                                    <a
+                                      href={ev.drive.url}
+                                      target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-primary hover:underline ml-auto"
                                     >

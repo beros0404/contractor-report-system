@@ -1,0 +1,20 @@
+// lib/supabase.ts
+import { createClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || '';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('⚠️ Supabase credentials not found. Please check your .env file and app.config.js');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});

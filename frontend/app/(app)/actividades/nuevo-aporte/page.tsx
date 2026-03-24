@@ -19,7 +19,9 @@ import {
   Square,
   Loader2,
   Link2,
-  FolderOpen
+  FolderOpen,
+  Check,
+  AlertCircle
 } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useContrato } from "@/contexts/contrato-context"
@@ -63,6 +65,12 @@ function NuevoAporteContent() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [evidenciasGuardadas, setEvidenciasGuardadas] = useState<any[]>([])
+  
+  // Cambiar de actividadId única a actividadesSeleccionadas (array)
+  const [actividadesSeleccionadas, setActividadesSeleccionadas] = useState<string[]>([])
+  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0])
+  const [descripcion, setDescripcion] = useState(descripcionPrefill)
+  const [errorFecha, setErrorFecha] = useState<string | null>(null)
 
   // Estados para audio
   const [isRecording, setIsRecording] = useState(false)
@@ -70,14 +78,24 @@ function NuevoAporteContent() {
   const [audioError, setAudioError] = useState<string | null>(null)
   const [tiempoRestante, setTiempoRestante] = useState<number>(60)
 
-  const [actividadId, setActividadId] = useState(preselectedId)
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0])
-  const [descripcion, setDescripcion] = useState(descripcionPrefill)
-
   const recognitionRef = useRef<any>(null)
   const timeoutRef = useRef<any>(null)
   const timerRef = useRef<any>(null)
   const finalTranscriptRef = useRef<string>("")
+
+  // Función para validar fecha contra la fecha de fin del contrato
+  const validarFechaContrato = (fechaSeleccionada: string, fechaFinContrato: string) => {
+    if (!fechaFinContrato) return true
+    
+    const fecha = new Date(fechaSeleccionada)
+    const fechaFin = new Date(fechaFinContrato)
+    
+    // Comparar solo fechas, sin horas
+    fecha.setHours(0, 0, 0, 0)
+    fechaFin.setHours(0, 0, 0, 0)
+    
+    return fecha <= fechaFin
+  }
 
   // Actualizar descripción cuando cambia el prefilled
   useEffect(() => {
@@ -101,18 +119,17 @@ function NuevoAporteContent() {
 
       try {
         setLoading(true)
-        const [acts, conf] = await Promise.all([
-          apiClient.getActividades(contratoActivo, usuarioId),
-          apiClient.getConfiguracion(contratoActivo, usuarioId)
-        ])
+        
+        // Cargar el contrato completo para obtener fechaFin y número
+        const contratoCompleto = await apiClient.getContrato(contratoActivo)
+        const acts = await apiClient.getActividades(contratoActivo, usuarioId)
 
         setActividades(Array.isArray(acts) ? acts : [])
-        setContrato(conf?.contrato || { numeroContrato: contratoActivo })
+        setContrato(contratoCompleto || { numeroContrato: contratoActivo })
         
+        // Si hay una actividad preseleccionada y existe en la lista
         if (preselectedId && acts.some((a: any) => a.id === preselectedId)) {
-          setActividadId(preselectedId)
-        } else if (acts.length > 0 && !actividadId) {
-          setActividadId(acts[0].id)
+          setActividadesSeleccionadas([preselectedId])
         }
       } catch (error) {
         console.error("Error cargando datos:", error)
@@ -125,7 +142,41 @@ function NuevoAporteContent() {
     cargarDatos()
   }, [contratoActivo, usuarioId, preselectedId])
 
-  // Función para iniciar grabación de audio (versión mejorada con 60 segundos)
+  // Validar fecha cuando cambia
+  useEffect(() => {
+    if (contrato?.fechaFin && fecha) {
+      const esValida = validarFechaContrato(fecha, contrato.fechaFin)
+      if (!esValida) {
+        const mensaje = `La fecha no puede ser posterior a la finalización del contrato (${new Date(contrato.fechaFin).toLocaleDateString('es-CO')})`
+        setErrorFecha(mensaje)
+        toast.error(mensaje)
+      } else {
+        setErrorFecha(null)
+      }
+    }
+  }, [fecha, contrato?.fechaFin])
+
+  // Función para manejar selección/deselección de actividades
+  const toggleActividad = (actividadId: string) => {
+    setActividadesSeleccionadas(prev => {
+      if (prev.includes(actividadId)) {
+        return prev.filter(id => id !== actividadId)
+      } else {
+        return [...prev, actividadId]
+      }
+    })
+  }
+
+  // Función para seleccionar/deseleccionar todas
+  const toggleTodas = () => {
+    if (actividadesSeleccionadas.length === actividades.length) {
+      setActividadesSeleccionadas([])
+    } else {
+      setActividadesSeleccionadas(actividades.map(a => a.id))
+    }
+  }
+
+  // Función para iniciar grabación de audio
   const startRecording = () => {
     try {
       setAudioError(null)
@@ -259,37 +310,52 @@ function NuevoAporteContent() {
       return
     }
 
-    if (!actividadId) {
-      toast.error("Selecciona una actividad contractual")
+    // Validar selección de actividades
+    if (actividadesSeleccionadas.length === 0) {
+      toast.error("Selecciona al menos una actividad contractual")
       return
     }
+    
     if (!descripcion.trim() && !asBorrador) {
       toast.error("La descripción es requerida")
+      return
+    }
+
+    // Validar fecha contra el contrato
+    if (contrato?.fechaFin && !validarFechaContrato(fecha, contrato.fechaFin)) {
+      toast.error(`No se puede registrar el aporte. La fecha ${new Date(fecha).toLocaleDateString('es-CO')} es posterior a la finalización del contrato (${new Date(contrato.fechaFin).toLocaleDateString('es-CO')})`)
       return
     }
 
     setSubmitting(true)
 
     try {
-      // Usar las evidencias ya guardadas a través del componente EvidenciaUpload
       const evidenciaIds = evidenciasGuardadas.map(ev => ev.id || ev._id)
+      
+      // Crear el aporte para cada actividad seleccionada
+      const aportesPromises = actividadesSeleccionadas.map(actividadId => {
+        const nuevoAporte = {
+          actividadId,
+          fecha,
+          descripcion: descripcion.trim() || "(Borrador sin descripción)",
+          evidenciaIds,
+          estado: asBorrador ? "borrador" : "completado",
+          monto: 1
+        }
+        
+        return apiClient.createAporte(nuevoAporte, usuarioId, contratoActivo)
+      })
+      
+      await Promise.all(aportesPromises)
 
-      // Crear el aporte
-      const nuevoAporte = {
-        actividadId,
-        fecha,
-        descripcion: descripcion.trim() || "(Borrador sin descripción)",
-        evidenciaIds,
-        estado: asBorrador ? "borrador" : "completado",
-        monto: 1
-      }
-
-      await apiClient.createAporte(nuevoAporte, usuarioId, contratoActivo)
+      const mensajeActividades = actividadesSeleccionadas.length === 1 
+        ? "la actividad seleccionada" 
+        : `las ${actividadesSeleccionadas.length} actividades seleccionadas`
 
       if (asBorrador) {
-        toast.success("Borrador guardado exitosamente")
+        toast.success(`Borrador guardado exitosamente para ${mensajeActividades}`)
       } else {
-        toast.success("Aporte enviado exitosamente")
+        toast.success(`Aporte enviado exitosamente para ${mensajeActividades}`)
       }
       
       router.push("/actividades")
@@ -359,9 +425,16 @@ function NuevoAporteContent() {
                   type="date"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                  max={contrato?.fechaFin ? new Date(contrato.fechaFin).toISOString().split('T')[0] : undefined}
+                  className={`h-11 w-full rounded-lg border ${errorFecha ? 'border-destructive' : 'border-input'} bg-background pl-10 pr-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring`}
                 />
               </div>
+              {errorFecha && (
+                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errorFecha}
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -369,7 +442,7 @@ function NuevoAporteContent() {
               </label>
               <input
                 type="text"
-                value={contrato?.numeroContrato || contratoActivo}
+                value={contrato?.numero || contrato?.numeroContrato || contratoActivo}
                 readOnly
                 className="h-11 w-full rounded-lg border border-input bg-muted px-3 text-sm text-foreground"
               />
@@ -377,22 +450,6 @@ function NuevoAporteContent() {
           </div>
 
           <div className="flex flex-col gap-4 md:hidden">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">
-                Actividad
-              </label>
-              <select
-                value={actividadId}
-                onChange={(e) => setActividadId(e.target.value)}
-                className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                {actividades.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.numero}. {a.titulo}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">
                 Fecha
@@ -403,30 +460,73 @@ function NuevoAporteContent() {
                   type="date"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                  max={contrato?.fechaFin ? new Date(contrato.fechaFin).toISOString().split('T')[0] : undefined}
+                  className={`h-11 w-full rounded-lg border ${errorFecha ? 'border-destructive' : 'border-input'} bg-background pl-10 pr-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring`}
                 />
               </div>
+              {errorFecha && (
+                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errorFecha}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="hidden flex-col gap-2 md:flex">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Actividad Contractual{" "}
-              <span className="text-destructive">*</span>
-            </label>
-            <select
-              value={actividadId}
-              onChange={(e) => setActividadId(e.target.value)}
-              className="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              {actividades.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.numero}. {a.titulo}
-                </option>
+          {/* Sección de selección múltiple de actividades */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Actividades Contractuales{" "}
+                <span className="text-destructive">*</span>
+              </label>
+              {actividades.length > 1 && (
+                <button
+                  type="button"
+                  onClick={toggleTodas}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {actividadesSeleccionadas.length === actividades.length ? "Deseleccionar todas" : "Seleccionar todas"}
+                </button>
+              )}
+            </div>
+            
+            <div className="mt-2 space-y-2 max-h-80 overflow-y-auto border border-border rounded-lg p-3">
+              {actividades.map((actividad) => (
+                <label
+                  key={actividad.id}
+                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={actividadesSeleccionadas.includes(actividad.id)}
+                    onChange={() => toggleActividad(actividad.id)}
+                    className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {actividad.numero}. {actividad.titulo}
+                    </p>
+                    {actividad.descripcion && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                        {actividad.descripcion}
+                      </p>
+                    )}
+                  </div>
+                  {actividadesSeleccionadas.includes(actividad.id) && (
+                    <Check className="h-4 w-4 text-primary shrink-0" />
+                  )}
+                </label>
               ))}
-            </select>
+              {actividades.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No hay actividades registradas para este contrato
+                </p>
+              )}
+            </div>
+            
             <p className="text-xs text-muted-foreground">
-              Actividades extraídas automáticamente del PDF del contrato
+              {actividadesSeleccionadas.length} actividad(es) seleccionada(s)
             </p>
           </div>
 
@@ -458,7 +558,7 @@ function NuevoAporteContent() {
             </div>
           </div>
 
-          {/* Sección de grabación de audio mejorada */}
+          {/* Sección de grabación de audio */}
           <div className="flex flex-col gap-3 rounded-xl border-2 border-dashed border-primary/20 bg-primary/5 p-6">
             <h3 className="text-sm font-medium text-foreground">Grabar audio</h3>
             
@@ -508,14 +608,14 @@ function NuevoAporteContent() {
             </p>
           </div>
 
-          {/* Sección de evidencias con el nuevo componente */}
+          {/* Sección de evidencias */}
           <div className="flex flex-col gap-3">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Evidencias
             </label>
             
             <EvidenciaUpload 
-              actividadId={actividadId}
+              actividadId={actividadesSeleccionadas[0] || ""}
               onSuccess={handleEvidenciaGuardada}
             />
 
@@ -557,7 +657,7 @@ function NuevoAporteContent() {
             <button
               type="button"
               onClick={() => handleSubmit(true)}
-              disabled={submitting}
+              disabled={submitting || actividadesSeleccionadas.length === 0}
               className="flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="h-4 w-4" />
@@ -566,7 +666,7 @@ function NuevoAporteContent() {
             <button
               type="button"
               onClick={() => handleSubmit(false)}
-              disabled={submitting}
+              disabled={submitting || actividadesSeleccionadas.length === 0 || !!errorFecha}
               className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
@@ -588,7 +688,7 @@ function NuevoAporteContent() {
           <button
             type="button"
             onClick={() => handleSubmit(false)}
-            disabled={submitting}
+            disabled={submitting || actividadesSeleccionadas.length === 0 || !!errorFecha}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (

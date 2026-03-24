@@ -41,6 +41,24 @@ const ADMINISTRADORES = [
   "Otro"
 ]
 
+// Función para formatear moneda
+const formatCurrency = (value: number | undefined | null): string => {
+  if (!value && value !== 0) return ""
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+// Función para convertir string formateado a número
+const parseCurrency = (value: string): number => {
+  // Eliminar todo lo que no sea dígito
+  const numericValue = value.replace(/\D/g, "")
+  return numericValue ? parseInt(numericValue, 10) : 0
+}
+
 export function ContratoTab({ onSave }: ContratoTabProps) {
   const router = useRouter()
   const { contratoActivo, usuarioId, refreshContratos } = useContrato()
@@ -49,6 +67,7 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [displayValue, setDisplayValue] = useState("") // Valor formateado para mostrar
   const [form, setForm] = useState<Contrato>({
     numero: "",
     entidad: "",
@@ -101,6 +120,8 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
         otroAdministradorPlantilla: data.otroAdministradorPlantilla || "",
         lugarFirma: data.lugarFirma || "Rionegro"
       })
+      // Actualizar el valor mostrado
+      setDisplayValue(formatCurrency(data.valor))
     } catch (error) {
       console.error("Error cargando contrato:", error)
       toast.error("Error al cargar los datos del contrato")
@@ -159,6 +180,15 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
 
   const updateField = (field: keyof Contrato, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleCurrencyChange = (value: string) => {
+    // Actualizar el valor mostrado con formato
+    setDisplayValue(value)
+    
+    // Extraer solo los números para el valor numérico
+    const numericValue = parseCurrency(value)
+    updateField("valor", numericValue)
   }
 
   if (loading) {
@@ -279,9 +309,9 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
             />
             <FieldInput
               label="Valor del contrato"
-              type="number"
-              value={form.valor.toString()}
-              onChange={(v) => updateField("valor", Number(v))}
+              type="text"
+              value={displayValue}
+              onChange={handleCurrencyChange}
               required
             />
           </div>
@@ -332,7 +362,6 @@ export function ContratoTab({ onSave }: ContratoTabProps) {
             />
           </div>
         </div>
-
 
         {/* Localización de Firma */}
         <div className="rounded-lg border border-border bg-card p-5">

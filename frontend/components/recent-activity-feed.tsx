@@ -38,7 +38,7 @@ export function RecentActivityFeed({ aportes, actividades }: RecentActivityFeedP
           : undefined
 
         const fechaFormateada = aporte.fecha 
-          ? format(parseISO(aporte.fecha), "d 'de' MMMM, yyyy", { locale: es })
+          ? format(new Date(aporte.fecha), "d 'de' MMMM, yyyy", { locale: es })
           : "Fecha no disponible"
 
         return (

@@ -20,9 +20,33 @@ export default function DashboardPage() {
   const [actividades, setActividades] = useState<Actividad[]>([])
   const [aportes, setAportes] = useState<Aporte[]>([])
   const [evidencias, setEvidencias] = useState<Evidencia[]>([])
+  const [contratoData, setContratoData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   console.log('📊 Dashboard - contratoActivo:', contratoActivo)
+  console.log('📊 Dashboard - contratoInfo:', contratoInfo)
+
+  // Cargar datos del contrato específico
+  useEffect(() => {
+    const cargarContrato = async () => {
+      if (!contratoActivo || !usuarioId) return
+      
+      try {
+        // Intentar obtener el contrato completo desde el API
+        const contratoCompleto = await apiClient.getContrato(contratoActivo)
+        console.log('📄 Contrato cargado:', contratoCompleto)
+        setContratoData(contratoCompleto)
+      } catch (error) {
+        console.error('❌ Error cargando contrato:', error)
+        // Fallback al contratoInfo del contexto si falla la carga
+        if (contratoInfo) {
+          setContratoData(contratoInfo)
+        }
+      }
+    }
+
+    cargarContrato()
+  }, [contratoActivo, usuarioId, contratoInfo])
 
   useEffect(() => {
     if (!contratoActivo || !usuarioId) {
@@ -92,16 +116,20 @@ export default function DashboardPage() {
   const aportesArray = Array.isArray(aportes) ? aportes : []
   const evidenciasArray = Array.isArray(evidencias) ? evidencias : []
 
-  const contratoData = contratoInfo || {
-    numeroContrato: contratoActivo?.substring(0, 8) || "Sin contrato",
-    entidadContratante: "No especificada",
-    fechaInicio: new Date().toISOString(),
-    fechaFin: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-    valorTotalHonorarios: 0
+  // Construir datos del contrato para mostrar
+  const contratoMostrar = {
+    numero: contratoData?.numero || contratoInfo?.numero || contratoActivo?.substring(0, 8) || "Sin contrato",
+    entidad: contratoData?.entidad || contratoInfo?.entidad || "No especificada",
+    fechaInicio: contratoData?.fechaInicio || contratoInfo?.fechaInicio || new Date().toISOString(),
+    fechaFin: contratoData?.fechaFin || contratoInfo?.fechaFin || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    valor: contratoData?.valor || contratoInfo?.valor || 0,
+    objeto: contratoData?.objeto || contratoInfo?.objeto || "",
+    contratistaNombre: contratoData?.contratistaNombre || contratoInfo?.contratistaNombre || "",
+    supervisorNombre: contratoData?.supervisorNombre || contratoInfo?.supervisorNombre || ""
   }
 
-  const diasRestantes = contratoData.fechaFin 
-    ? Math.max(0, differenceInDays(parseISO(contratoData.fechaFin), new Date()))
+  const diasRestantes = contratoMostrar.fechaFin 
+    ? Math.max(0, differenceInDays(parseISO(contratoMostrar.fechaFin), new Date()))
     : 0
 
   const actividadesCompletadas = actividadesArray.filter(a => a.estado === 'completada').length
@@ -113,7 +141,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            Contrato {contratoData.numeroContrato} - {contratoData.entidadContratante}
+            Contrato {contratoMostrar.numero} - {contratoMostrar.entidad}
           </p>
         </div>
       </div>
@@ -160,7 +188,7 @@ export default function DashboardPage() {
 
         <div className="lg:col-span-1 space-y-6">
           <ContractSummaryCard
-            contrato={contratoData}
+            contrato={contratoMostrar}
             configuracion={undefined}
           />
           <CalendarEvents />
