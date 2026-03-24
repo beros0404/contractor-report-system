@@ -26,6 +26,7 @@ import {
 import { apiClient } from "@/lib/api-client"
 import { useContrato } from "@/contexts/contrato-context"
 import { EvidenciaUpload } from "@/components/evidence-upload"
+import { getCurrentColombiaDate, toColombiaDate } from "@/lib/utils"
 import type { TipoEvidencia } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -68,7 +69,7 @@ function NuevoAporteContent() {
   
   // Cambiar de actividadId única a actividadesSeleccionadas (array)
   const [actividadesSeleccionadas, setActividadesSeleccionadas] = useState<string[]>([])
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0])
+  const [fecha, setFecha] = useState(getCurrentColombiaDate())
   const [descripcion, setDescripcion] = useState(descripcionPrefill)
   const [errorFecha, setErrorFecha] = useState<string | null>(null)
 
@@ -332,11 +333,17 @@ function NuevoAporteContent() {
     try {
       const evidenciaIds = evidenciasGuardadas.map(ev => ev.id || ev._id)
       
+      // Convertir fecha a zona horaria de Colombia (UTC-5)
+      const fechaColombia = toColombiaDate(fecha)
+      
+      console.log("📝 Fecha original:", fecha)
+      console.log("📝 Fecha para guardar:", fechaColombia)
+      
       // Crear el aporte para cada actividad seleccionada
       const aportesPromises = actividadesSeleccionadas.map(actividadId => {
         const nuevoAporte = {
           actividadId,
-          fecha,
+          fecha: fechaColombia,
           descripcion: descripcion.trim() || "(Borrador sin descripción)",
           evidenciaIds,
           estado: asBorrador ? "borrador" : "completado",

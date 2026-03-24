@@ -1,4 +1,3 @@
-// components/aporte-form.tsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -6,6 +5,7 @@ import { Calendar, Send, Loader2, AlertCircle, X, Upload, Link2, FileText } from
 import { apiClient } from "@/lib/api-client"
 import { useContrato } from "@/contexts/contrato-context"
 import { EvidenciaUpload } from "@/components/evidencia-upload"
+import { getCurrentColombiaDate, toColombiaDate } from "@/lib/utils"
 import { toast } from "sonner"
 
 interface AporteFormProps {
@@ -15,13 +15,7 @@ interface AporteFormProps {
 
 export function AporteForm({ actividadId, onSuccess }: AporteFormProps) {
   const { contratoActivo, usuarioId } = useContrato()
-  const [fecha, setFecha] = useState(() => {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  })
+  const [fecha, setFecha] = useState(getCurrentColombiaDate())
   const [descripcion, setDescripcion] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [errorFecha, setErrorFecha] = useState<string | null>(null)
@@ -106,12 +100,16 @@ export function AporteForm({ actividadId, onSuccess }: AporteFormProps) {
     try {
       const evidenciaIds = evidenciasGuardadas.map(ev => ev.id || ev._id)
       
-      console.log("📝 Creando aporte con evidencias:", evidenciaIds)
+      // Convertir fecha a zona horaria de Colombia (UTC-5)
+      const fechaColombia = toColombiaDate(fecha)
+      
+      console.log("📝 Fecha original:", fecha)
+      console.log("📝 Fecha para guardar:", fechaColombia)
       
       await apiClient.createAporte(
         {
           actividadId,
-          fecha,
+          fecha: fechaColombia,
           descripcion: descripcion.trim(),
           evidenciaIds,
           estado: "completado",
@@ -123,7 +121,7 @@ export function AporteForm({ actividadId, onSuccess }: AporteFormProps) {
       
       toast.success("Aporte registrado correctamente")
       setDescripcion("")
-      setEvidenciasGuardadas([]) // Limpiar evidencias después de guardar
+      setEvidenciasGuardadas([])
       onSuccess()
     } catch (error) {
       console.error("Error:", error)
