@@ -147,6 +147,27 @@ export const api = {
     }
   },
 
+  async addEvidence(data: any) {
+    try {
+      const endpoint = data.tipo === 'enlace' 
+        ? `${API_URL}/api/evidencias/enlace`
+        : data.tipo === 'nota'
+        ? `${API_URL}/api/evidencias/nota`
+        : `${API_URL}/api/evidencias/upload`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(`Error al agregar ${data.tipo}`);
+      return await res.json();
+    } catch (error) {
+      console.error('Error en addEvidence:', error);
+      throw error;
+    }
+  },
+
   // Calendario
   async getEventos(usuarioId: string, timeMin: string, timeMax: string) {
     try {
