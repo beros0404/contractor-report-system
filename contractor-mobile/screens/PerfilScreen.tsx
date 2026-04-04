@@ -19,9 +19,44 @@ interface User {
   };
 }
 
+interface Configuracion {
+  id: string;
+  nombre: string;
+  valor: boolean;
+  descripcion?: string;
+}
+
 export default function PerfilScreen({ navigation }: any) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<'general' | 'contrato' | 'actividades' | 'periodos' | null>(null);
+  const [configuraciones, setConfiguraciones] = useState<{
+    general: Configuracion[];
+    contrato: Configuracion[];
+    actividades: Configuracion[];
+    periodos: Configuracion[];
+  }>({
+    general: [
+      { id: '1', nombre: 'Notificaciones', valor: true, descripcion: 'Recibir notificaciones de alertas' },
+      { id: '2', nombre: 'Recordatorios', valor: true, descripcion: 'Recordatorios de actividades próximas' },
+      { id: '3', nombre: 'Modo oscuro', valor: false, descripcion: 'Activar modo oscuro' },
+    ],
+    contrato: [
+      { id: '4', nombre: 'Mostrar contrato activo', valor: true, descripcion: 'Mostrar contrato seleccionado en el dashboard' },
+      { id: '5', nombre: 'Mostrar estado', valor: true, descripcion: 'Mostrar estado del contrato' },
+      { id: '6', nombre: 'Alertas de cambio', valor: true, descripcion: 'Alertar cuando el contrato cambia' },
+    ],
+    actividades: [
+      { id: '7', nombre: 'Mostrar progreso', valor: true, descripcion: 'Mostrar barra de progreso en actividades' },
+      { id: '8', nombre: 'Agrupar por estado', valor: true, descripcion: 'Agrupar actividades por estado' },
+      { id: '9', nombre: 'Mostrar comentarios', valor: true, descripcion: 'Mostrar comentarios en actividades' },
+    ],
+    periodos: [
+      { id: '10', nombre: 'Mostrar días restantes', valor: true, descripcion: 'Mostrar contador de días' },
+      { id: '11', nombre: 'Alertas de vencimiento', valor: true, descripcion: 'Alertar cuando falta poco para vencer' },
+      { id: '12', nombre: 'Mostrar línea de tiempo', valor: true, descripcion: 'Mostrar línea de tiempo de periodos' },
+    ],
+  });
 
   useEffect(() => {
     loadUser();
@@ -41,6 +76,15 @@ export default function PerfilScreen({ navigation }: any) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleConfiguracion = (section: 'general' | 'contrato' | 'actividades' | 'periodos', id: string) => {
+    setConfiguraciones({
+      ...configuraciones,
+      [section]: configuraciones[section].map((config) =>
+        config.id === id ? { ...config, valor: !config.valor } : config
+      ),
+    });
   };
 
   const handleLogout = async () => {
@@ -105,21 +149,149 @@ export default function PerfilScreen({ navigation }: any) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Configuración</Text>
         
-        <TouchableOpacity style={styles.infoItem} onPress={() => {}}>
-          <Icon name="notifications-outline" size={20} color="#6b7280" />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoValue}>Notificaciones</Text>
+        {/* Sección General */}
+        <TouchableOpacity 
+          style={styles.configSection}
+          onPress={() => setActiveSection(activeSection === 'general' ? null : 'general')}
+        >
+          <View style={styles.configSectionHeader}>
+            <Icon name="settings-outline" size={20} color="#3b82f6" />
+            <Text style={styles.configSectionTitle}>General</Text>
           </View>
-          <Icon name="chevron-forward" size={20} color="#9ca3af" />
+          <Icon 
+            name={activeSection === 'general' ? 'chevron-up' : 'chevron-down'} 
+            size={20} 
+            color="#9ca3af" 
+          />
         </TouchableOpacity>
+        {activeSection === 'general' && (
+          <View style={styles.configContent}>
+            {configuraciones.general.map((config) => (
+              <View key={config.id} style={styles.configItem}>
+                <View style={styles.configItemInfo}>
+                  <Text style={styles.configItemName}>{config.nombre}</Text>
+                  {config.descripcion && (
+                    <Text style={styles.configItemDescription}>{config.descripcion}</Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[styles.toggle, config.valor && styles.toggleActive]}
+                  onPress={() => toggleConfiguracion('general', config.id)}
+                >
+                  <View style={[styles.toggleCircle, config.valor && styles.toggleCircleActive]} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
 
-        <TouchableOpacity style={styles.infoItem} onPress={() => {}}>
-          <Icon name="shield-outline" size={20} color="#6b7280" />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoValue}>Privacidad</Text>
+        {/* Sección Contrato */}
+        <TouchableOpacity 
+          style={styles.configSection}
+          onPress={() => setActiveSection(activeSection === 'contrato' ? null : 'contrato')}
+        >
+          <View style={styles.configSectionHeader}>
+            <Icon name="document-text-outline" size={20} color="#f59e0b" />
+            <Text style={styles.configSectionTitle}>Configuración de Contrato</Text>
           </View>
-          <Icon name="chevron-forward" size={20} color="#9ca3af" />
+          <Icon 
+            name={activeSection === 'contrato' ? 'chevron-up' : 'chevron-down'} 
+            size={20} 
+            color="#9ca3af" 
+          />
         </TouchableOpacity>
+        {activeSection === 'contrato' && (
+          <View style={styles.configContent}>
+            {configuraciones.contrato.map((config) => (
+              <View key={config.id} style={styles.configItem}>
+                <View style={styles.configItemInfo}>
+                  <Text style={styles.configItemName}>{config.nombre}</Text>
+                  {config.descripcion && (
+                    <Text style={styles.configItemDescription}>{config.descripcion}</Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[styles.toggle, config.valor && styles.toggleActive]}
+                  onPress={() => toggleConfiguracion('contrato', config.id)}
+                >
+                  <View style={[styles.toggleCircle, config.valor && styles.toggleCircleActive]} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Sección Actividades */}
+        <TouchableOpacity 
+          style={styles.configSection}
+          onPress={() => setActiveSection(activeSection === 'actividades' ? null : 'actividades')}
+        >
+          <View style={styles.configSectionHeader}>
+            <Icon name="checkmark-circle-outline" size={20} color="#10b981" />
+            <Text style={styles.configSectionTitle}>Configuración de Actividades</Text>
+          </View>
+          <Icon 
+            name={activeSection === 'actividades' ? 'chevron-up' : 'chevron-down'} 
+            size={20} 
+            color="#9ca3af" 
+          />
+        </TouchableOpacity>
+        {activeSection === 'actividades' && (
+          <View style={styles.configContent}>
+            {configuraciones.actividades.map((config) => (
+              <View key={config.id} style={styles.configItem}>
+                <View style={styles.configItemInfo}>
+                  <Text style={styles.configItemName}>{config.nombre}</Text>
+                  {config.descripcion && (
+                    <Text style={styles.configItemDescription}>{config.descripcion}</Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[styles.toggle, config.valor && styles.toggleActive]}
+                  onPress={() => toggleConfiguracion('actividades', config.id)}
+                >
+                  <View style={[styles.toggleCircle, config.valor && styles.toggleCircleActive]} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Sección Periodos */}
+        <TouchableOpacity 
+          style={styles.configSection}
+          onPress={() => setActiveSection(activeSection === 'periodos' ? null : 'periodos')}
+        >
+          <View style={styles.configSectionHeader}>
+            <Icon name="calendar-outline" size={20} color="#8b5cf6" />
+            <Text style={styles.configSectionTitle}>Configuración de Periodos</Text>
+          </View>
+          <Icon 
+            name={activeSection === 'periodos' ? 'chevron-up' : 'chevron-down'} 
+            size={20} 
+            color="#9ca3af" 
+          />
+        </TouchableOpacity>
+        {activeSection === 'periodos' && (
+          <View style={styles.configContent}>
+            {configuraciones.periodos.map((config) => (
+              <View key={config.id} style={styles.configItem}>
+                <View style={styles.configItemInfo}>
+                  <Text style={styles.configItemName}>{config.nombre}</Text>
+                  {config.descripcion && (
+                    <Text style={styles.configItemDescription}>{config.descripcion}</Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[styles.toggle, config.valor && styles.toggleActive]}
+                  onPress={() => toggleConfiguracion('periodos', config.id)}
+                >
+                  <View style={[styles.toggleCircle, config.valor && styles.toggleCircleActive]} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -219,5 +391,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
     marginTop: 20,
+  },
+  configSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  configSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  configSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  configContent: {
+    backgroundColor: '#f9fafb',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginBottom: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  configItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  configItemInfo: {
+    flex: 1,
+  },
+  configItemName: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  configItemDescription: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  toggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e5e7eb',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleActive: {
+    backgroundColor: '#10b981',
+  },
+  toggleCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignSelf: 'flex-start',
+  },
+  toggleCircleActive: {
+    alignSelf: 'flex-end',
   },
 });

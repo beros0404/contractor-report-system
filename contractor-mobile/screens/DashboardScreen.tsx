@@ -68,36 +68,29 @@ export default function DashboardScreen({ navigation }: any) {
   const [selectedActividad, setSelectedActividad] = useState<Actividad | null>(null);
   const [showContratoSelector, setShowContratoSelector] = useState(false);
 
-const loadUser = async () => {
-    try {
-      const currentUser = await api.getCurrentUser();
-
-      if (!currentUser) {
-        setUser(null);
-        return;
-      }
-
-      setUser(currentUser as User);
-      await loadContratos(currentUser.id);
-    } catch (error) {
-      console.error('Error loading user:', error);
-    }
-  };
-
   const loadContratos = async (usuarioId: string) => {
     try {
       const data = await api.getContratos(usuarioId);
-      setContratos(data);
-      if (data.length > 0 && !contratoActivo) {
-        setContratoActivo(data[0]);
+      if (Array.isArray(data)) {
+        setContratos(data);
+        if (data.length > 0 && !contratoActivo) {
+          setContratoActivo(data[0]);
+        }
+      } else {
+        setContratos([]);
       }
     } catch (error) {
       console.error('Error loading contratos:', error);
+      setContratos([]);
     }
   };
 
   const loadActividades = async () => {
-    if (!user?.id || !contratoActivo?.id) return;
+    if (!user?.id || !contratoActivo?.id) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     
     try {
       const [acts, aps, evids] = await Promise.all([
@@ -105,11 +98,14 @@ const loadUser = async () => {
         api.getAportes(contratoActivo.id, user.id),
         api.getEvidencias(contratoActivo.id, user.id),
       ]);
-      setActividades(acts);
-      setAportes(aps);
-      setEvidencias(evids);
+      setActividades(Array.isArray(acts) ? acts : []);
+      setAportes(Array.isArray(aps) ? aps : []);
+      setEvidencias(Array.isArray(evids) ? evids : []);
     } catch (error) {
       console.error('Error loading actividades:', error);
+      setActividades([]);
+      setAportes([]);
+      setEvidencias([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -117,7 +113,26 @@ const loadUser = async () => {
   };
 
   useEffect(() => {
-    loadUser();
+    const initializeScreen = async () => {
+      setLoading(true);
+      try {
+        const currentUser = await api.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser as User);
+          const data = await api.getContratos(currentUser.id);
+          setContratos(data);
+          if (data.length > 0) {
+            setContratoActivo(data[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    initializeScreen();
   }, []);
 
   useEffect(() => {
@@ -130,6 +145,8 @@ const loadUser = async () => {
     useCallback(() => {
       if (user && contratoActivo) {
         loadActividades();
+      } else if (user) {
+        loadContratos(user.id);
       }
     }, [user, contratoActivo])
   );
