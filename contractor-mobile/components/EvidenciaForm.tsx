@@ -21,6 +21,7 @@ interface EvidenciaFormProps {
   onSuccess: () => void;
   actividadId: string;
   actividadTitulo: string;
+  actividadDescripcion?: string;
   contratoId: string;
   usuarioId: string;
 }
@@ -31,6 +32,7 @@ export const EvidenciaForm = ({
   onSuccess,
   actividadId,
   actividadTitulo,
+  actividadDescripcion,
   contratoId,
   usuarioId,
 }: EvidenciaFormProps) => {
@@ -40,6 +42,8 @@ export const EvidenciaForm = ({
   const [enlaceTitulo, setEnlaceTitulo] = useState('');
   const [notaTitulo, setNotaTitulo] = useState('');
   const [notaContenido, setNotaContenido] = useState('');
+  const [evidenciasAgregadas, setEvidenciasAgregadas] = useState<any[]>([]);
+  const [mostrarResumen, setMostrarResumen] = useState(false);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -98,9 +102,14 @@ export const EvidenciaForm = ({
 
       await api.uploadEvidence(formData, usuarioId, contratoId, actividadId);
       
-      Alert.alert('Éxito', 'Evidencia subida correctamente');
-      onSuccess();
-      onClose();
+      // Agregar a la lista sin cerrar
+      setEvidenciasAgregadas([...evidenciasAgregadas, {
+        tipo: 'archivo',
+        nombre: fileName,
+        fecha: new Date(),
+      }]);
+      
+      Alert.alert('Éxito', 'Evidencia agregada correctamente');
       setActiveTab('archivo');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo subir la evidencia');
@@ -127,11 +136,16 @@ export const EvidenciaForm = ({
         descripcion: '',
       });
 
+      // Agregar a la lista sin cerrar
+      setEvidenciasAgregadas([...evidenciasAgregadas, {
+        tipo: 'enlace',
+        nombre: enlaceTitulo || enlaceUrl,
+        fecha: new Date(),
+      }]);
+
       Alert.alert('Éxito', 'Enlace agregado correctamente');
       setEnlaceUrl('');
       setEnlaceTitulo('');
-      onSuccess();
-      onClose();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo agregar el enlace');
     } finally {
@@ -156,16 +170,34 @@ export const EvidenciaForm = ({
         contenido: notaContenido,
       });
 
+      // Agregar a la lista sin cerrar
+      setEvidenciasAgregadas([...evidenciasAgregadas, {
+        tipo: 'nota',
+        nombre: notaTitulo || 'Nota sin título',
+        fecha: new Date(),
+      }]);
+
       Alert.alert('Éxito', 'Nota agregada correctamente');
       setNotaTitulo('');
       setNotaContenido('');
-      onSuccess();
-      onClose();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo agregar la nota');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFinalizarRegistro = () => {
+    onSuccess();
+    // Resetear estado y cerrar
+    setEvidenciasAgregadas([]);
+    setMostrarResumen(false);
+    setActiveTab('archivo');
+    setEnlaceUrl('');
+    setEnlaceTitulo('');
+    setNotaTitulo('');
+    setNotaContenido('');
+    onClose();
   };
 
   return (
@@ -176,7 +208,7 @@ export const EvidenciaForm = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <ScrollView style={styles.modalContent}>
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={true}>
           <View style={styles.header}>
             <Text style={styles.title}>Registrar Evidencia</Text>
             <TouchableOpacity onPress={onClose} disabled={loading}>
@@ -186,7 +218,12 @@ export const EvidenciaForm = ({
 
           <View style={styles.activityInfo}>
             <Icon name="document-text" size={20} color="#3b82f6" />
-            <Text style={styles.activityTitle}>{actividadTitulo}</Text>
+            <View style={styles.activityContent}>
+              <Text style={styles.activityTitle}>{actividadTitulo}</Text>
+              {actividadDescripcion && (
+                <Text style={styles.activityDescription}>{actividadDescripcion}</Text>
+              )}
+            </View>
           </View>
 
           {/* Tabs */}
@@ -337,6 +374,65 @@ export const EvidenciaForm = ({
               <Text style={styles.loadingText}>Subiendo archivo...</Text>
             </View>
           )}
+
+          {/* Resumen de evidencias agregadas */}
+          {evidenciasAgregadas.length > 0 && (
+            <View style={styles.resumenContainer}>
+              <View style={styles.resumenHeader}>
+                <Icon name="checkmark-circle" size={20} color="#10b981" />
+                <Text style={styles.resumenTitle}>
+                  Evidencias agregadas ({evidenciasAgregadas.length})
+                </Text>
+              </View>
+              {evidenciasAgregadas.map((evidencia, index) => (
+                <View key={index} style={styles.resumenItem}>
+                  <Icon
+                    name={
+                      evidencia.tipo === 'archivo'
+                        ? 'document'
+                        : evidencia.tipo === 'enlace'
+                        ? 'link'
+                        : 'document-text'
+                    }
+                    size={16}
+                    color="#6b7280"
+                  />
+                  <View style={styles.resumenItemInfo}>
+                    <Text style={styles.resumenItemName}>{evidencia.nombre}</Text>
+                    <Text style={styles.resumenItemType}>{evidencia.tipo}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Botones de acción */}
+          {evidenciasAgregadas.length > 0 && (
+            <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.secondaryButton]}
+                onPress={() => setEvidenciasAgregadas([])}
+                disabled={loading}
+              >
+                <Icon name="trash" size={16} color="#ef4444" />
+                <Text style={styles.secondaryButtonText}>Limpiar Lista</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
+                onPress={handleFinalizarRegistro}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Icon name="checkmark" size={16} color="#fff" />
+                    <Text style={styles.primaryButtonText}>Guardar Todo</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       </View>
     </Modal>
@@ -369,18 +465,26 @@ const styles = StyleSheet.create({
   },
   activityInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 10,
     backgroundColor: '#eff6ff',
     padding: 12,
     borderRadius: 12,
     marginBottom: 20,
   },
-  activityTitle: {
+  activityContent: {
     flex: 1,
+  },
+  activityTitle: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1f2937',
+    marginBottom: 4,
+  },
+  activityDescription: {
+    fontSize: 12,
+    color: '#6b7280',
+    lineHeight: 16,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -485,5 +589,88 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#6b7280',
+  },
+  resumenContainer: {
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  resumenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  resumenTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#166534',
+  },
+  resumenItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#10b981',
+  },
+  resumenItemInfo: {
+    flex: 1,
+  },
+  resumenItemName: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  resumenItemType: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  primaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#10b981',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  primaryButtonDisabled: {
+    backgroundColor: '#86efac',
+  },
+  primaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  secondaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#fee2e2',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ef4444',
   },
 });

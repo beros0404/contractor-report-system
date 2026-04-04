@@ -53,6 +53,7 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedActividad, setSelectedActividad] = useState<Actividad | null>(null);
   const [showEvidenciaForm, setShowEvidenciaForm] = useState(false);
+  const [expandedActividadId, setExpandedActividadId] = useState<string | null>(null);
 
   const loadUser = async () => {
     try {
@@ -110,8 +111,12 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
   };
 
   const handleSelectActividad = (actividad: Actividad) => {
-    setSelectedActividad(actividad);
-    setShowEvidenciaForm(true);
+    // Alternar expansión para ver evidencias
+    if (expandedActividadId === actividad.id) {
+      setExpandedActividadId(null);
+    } else {
+      setExpandedActividadId(actividad.id);
+    }
   };
 
   const handleAddEvidencia = (actividad: Actividad) => {
@@ -221,8 +226,13 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
             keyExtractor={(item) => item.id || item._id || item.numero.toString()}
             renderItem={({ item }) => {
               const actividadEvidencias = getEvidenciasForActividad(item.id);
+              const isExpanded = expandedActividadId === item.id;
               return (
-                <View style={styles.actividadCard}>
+                <TouchableOpacity
+                  style={styles.actividadCard}
+                  activeOpacity={0.7}
+                  onPress={() => handleSelectActividad(item)}
+                >
                   <View style={styles.actividadHeader}>
                     <View style={styles.actividadTitleSection}>
                       <Text style={styles.actividadNumero}>Act. {item.numero}</Text>
@@ -238,12 +248,24 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
                         </Text>
                       </View>
                     </View>
-                    <TouchableOpacity
-                      style={styles.moreButton}
-                      onPress={() => handleAddEvidencia(item)}
-                    >
-                      <Icon name="add-circle" size={28} color="#3b82f6" />
-                    </TouchableOpacity>
+                    <View style={styles.headerActions}>
+                      <TouchableOpacity
+                        style={styles.expandButton}
+                        onPress={() => handleSelectActividad(item)}
+                      >
+                        <Icon 
+                          name={isExpanded ? "chevron-up" : "chevron-down"} 
+                          size={24} 
+                          color="#3b82f6" 
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => handleAddEvidencia(item)}
+                      >
+                        <Icon name="add-circle" size={28} color="#3b82f6" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   <Text style={styles.actividadDescripcion}>{item.descripcion}</Text>
@@ -259,52 +281,49 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
                     </View>
                   </View>
 
-                  {/* Evidencias */}
-                  {actividadEvidencias.length > 0 && (
-                    <View style={styles.evidenciasSection}>
-                      <View style={styles.evidenciasHeader}>
-                        <Icon name="document-text" size={16} color="#3b82f6" />
-                        <Text style={styles.evidenciasTitle}>
-                          Evidencias ({actividadEvidencias.length})
-                        </Text>
-                      </View>
-                      {actividadEvidencias.map((evidencia) => (
-                        <View key={evidencia.id} style={styles.evidenciaItem}>
-                          <Icon
-                            name={getTipoEvidenciaIcon(evidencia.tipo)}
-                            size={16}
-                            color="#6b7280"
-                          />
-                          <View style={styles.evidenciaInfo}>
-                            <Text style={styles.evidenciaNombre}>{evidencia.nombre}</Text>
-                            <Text style={styles.evidenciaFecha}>
-                              {new Date(evidencia.fecha).toLocaleDateString('es-CO')}
+                  {/* Evidencias - Solo mostrar si está expandida */}
+                  {isExpanded && (
+                    <>
+                      {actividadEvidencias.length > 0 && (
+                        <View style={styles.evidenciasSection}>
+                          <View style={styles.evidenciasHeader}>
+                            <Icon name="document-text" size={16} color="#3b82f6" />
+                            <Text style={styles.evidenciasTitle}>
+                              Evidencias ({actividadEvidencias.length})
                             </Text>
                           </View>
-                          <View style={styles.tipoBadge}>
-                            <Text style={styles.tipoText}>{evidencia.tipo}</Text>
-                          </View>
+                          {actividadEvidencias.map((evidencia) => (
+                            <View key={evidencia.id} style={styles.evidenciaItem}>
+                              <Icon
+                                name={getTipoEvidenciaIcon(evidencia.tipo)}
+                                size={16}
+                                color="#6b7280"
+                              />
+                              <View style={styles.evidenciaInfo}>
+                                <Text style={styles.evidenciaNombre}>{evidencia.nombre}</Text>
+                                <Text style={styles.evidenciaFecha}>
+                                  {new Date(evidencia.fecha).toLocaleDateString('es-CO')}
+                                </Text>
+                              </View>
+                              <View style={styles.tipoBadge}>
+                                <Text style={styles.tipoText}>{evidencia.tipo}</Text>
+                              </View>
+                            </View>
+                          ))}
                         </View>
-                      ))}
-                    </View>
-                  )}
+                      )}
 
-                  {actividadEvidencias.length === 0 && (
-                    <View style={styles.noEvidenciasContainer}>
-                      <Icon name="document-outline" size={24} color="#d1d5db" />
-                      <Text style={styles.noEvidenciasText}>
-                        Sin evidencias registradas
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.addEvidenciaButton}
-                        onPress={() => handleAddEvidencia(item)}
-                      >
-                        <Icon name="add" size={16} color="#fff" />
-                        <Text style={styles.addEvidenciaText}>Agregar evidencia</Text>
-                      </TouchableOpacity>
-                    </View>
+                      {actividadEvidencias.length === 0 && (
+                        <View style={styles.noEvidenciasContainer}>
+                          <Icon name="document-outline" size={24} color="#d1d5db" />
+                          <Text style={styles.noEvidenciasText}>
+                            Sin evidencias registradas
+                          </Text>
+                        </View>
+                      )}
+                    </>
                   )}
-                </View>
+                </TouchableOpacity>
               );
             }}
           />
@@ -341,6 +360,7 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
           }}
           actividadId={selectedActividad.id}
           actividadTitulo={selectedActividad.titulo}
+          actividadDescripcion={selectedActividad.descripcion}
           contratoId={contratoId}
           usuarioId={user?.id || ''}
         />
@@ -455,8 +475,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-  moreButton: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  expandButton: {
     padding: 8,
+  },
+  addButton: {
+    padding: 4,
   },
   actividadDescripcion: {
     fontSize: 13,
