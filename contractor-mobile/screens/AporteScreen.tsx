@@ -157,15 +157,19 @@ export default function AporteScreen({ navigation, route }: any) {
     try {
       // Obtener detalles completos (incluye fechaFin)
       let contratoCompleto = contrato;
-      if (api.getContrato) {
-        contratoCompleto = await api.getContrato(contrato.id);
+      if (api.getContrato && resolvedUid) {
+        contratoCompleto = await api.getContrato(contrato.id, resolvedUid);
       }
       setContratoActivo(contratoCompleto);
       if (resolvedUid) {
         await loadActividades(contratoCompleto.id, resolvedUid, contratoCompleto);
       }
     } catch (e) {
+      console.error('Error en selectContrato:', e);
       setContratoActivo(contrato);
+      if (resolvedUid) {
+        await loadActividades(contrato.id, resolvedUid, contrato);
+      }
     }
   };
 
