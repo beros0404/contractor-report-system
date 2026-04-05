@@ -5,6 +5,9 @@ import { supabase } from './supabase';
 // URL del API - localhost:3001 donde está MongoDB
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
 
+// Debug: Log API URL on startup
+console.log('[API] Conectando a:', API_URL);
+
 export const api = {
   // Auth
   async login(email: string, password: string) {
@@ -44,14 +47,23 @@ export const api = {
   // Contratos
   async getContratos(usuarioId: string) {
     try {
-      const res = await fetch(`${API_URL}/api/contracts?usuarioId=${usuarioId}`);
+      const url = `${API_URL}/api/contracts?usuarioId=${usuarioId}`;
+      console.log('[API] GET Contratos:', url);
+      const res = await fetch(url);
       if (!res.ok) {
-        if (res.status === 404) return [];
+        if (res.status === 404) {
+          console.log('[API] No contratos encontrados (404)');
+          return [];
+        }
         throw new Error(`Error ${res.status}: ${await res.text()}`);
       }
-      return await res.json();
+      const data = await res.json();
+      console.log('[API] Contratos recibidos:', data.length, 'items');
+      return data;
     } catch (error) {
-      console.error('Error en getContratos:', error);
+      console.error('[API] Error en getContratos:', error);
+      console.error('[API] Backend URL:', `${API_URL}/api/contracts`);
+      console.error('[API] ¿Backend está corriendo en localhost:3001?');
       return [];
     }
   },
@@ -70,14 +82,19 @@ export const api = {
   // Actividades
   async getActividades(contratoId: string, usuarioId: string) {
     try {
-      const res = await fetch(`${API_URL}/api/activities?contratoId=${contratoId}&usuarioId=${usuarioId}`);
+      const url = `${API_URL}/api/activities?contratoId=${contratoId}&usuarioId=${usuarioId}`;
+      console.log('[API] GET Actividades:', url);
+      const res = await fetch(url);
       if (!res.ok) {
         if (res.status === 404) return [];
         throw new Error(`Error ${res.status}: ${await res.text()}`);
       }
-      return await res.json();
+      const data = await res.json();
+      console.log('[API] Actividades recibidas:', data);
+      return data;
     } catch (error) {
-      console.error('Error en getActividades:', error);
+      console.error('[API] Error en getActividades:', error);
+      console.error('[API] Backend URL:', `${API_URL}/api/activities`);
       return [];
     }
   },
