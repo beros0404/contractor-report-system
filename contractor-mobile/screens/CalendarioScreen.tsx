@@ -90,21 +90,30 @@ export default function CalendarioScreen() {
   };
 
   const loadEventosYActividades = async () => {
-    if (!user?.id || !contratoActivo?.id) return;
+    if (!user?.id || !contratoActivo?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
       
-      const [eventosData, actividadesData] = await Promise.all([
-        api.getEventos(user.id, startOfMonth.toISOString(), endOfMonth.toISOString()),
-        api.getActividades(contratoActivo.id, user.id),
-      ]);
-      
-      setEventos(eventosData.eventos || []);
-      setActividades(actividadesData || []);
-    } catch (error) {
-      console.error('Error loading eventos y actividades:', error);
+      try {
+        const eventosData = await api.getEventos(user.id, startOfMonth.toISOString(), endOfMonth.toISOString());
+        setEventos(eventosData.eventos || []);
+      } catch (e) {
+        console.error('Error loading eventos:', e);
+        setEventos([]);
+      }
+
+      try {
+        const actividadesData = await api.getActividades(contratoActivo.id, user.id);
+        setActividades(Array.isArray(actividadesData) ? actividadesData : []);
+      } catch (e) {
+        console.error('Error loading actividades:', e);
+        setActividades([]);
+      }
     } finally {
       setLoading(false);
     }

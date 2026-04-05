@@ -2,7 +2,8 @@
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://tu-backend.onrender.com';
+// URL del API - localhost:3001 donde está MongoDB
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
 
 export const api = {
   // Auth

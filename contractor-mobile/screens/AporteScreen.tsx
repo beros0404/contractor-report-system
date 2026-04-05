@@ -529,9 +529,12 @@ export default function AporteScreen({ navigation, route }: any) {
 
         {/* ── Card: Descripción ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Descripción del aporte</Text>
+          <Text style={styles.cardTitle}>
+            Descripción del aporte
+            <Text style={{ color: '#ef4444' }}>*</Text>
+          </Text>
           <Text style={styles.cardSub}>
-            Describe la acción concreta que realizaste hoy
+            Campo obligatorio - Describe la acción concreta que realizaste hoy
           </Text>
 
           <TextInput
@@ -600,14 +603,27 @@ export default function AporteScreen({ navigation, route }: any) {
         </View>
 
         {/* ── Card: Evidencias ── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Evidencias</Text>
-          <Text style={styles.cardSub}>Adjunta archivos, enlaces o notas</Text>
+        <View style={[styles.card, !descripcion.trim() && styles.cardDisabled]}>
+          <View>
+            <Text style={styles.cardTitle}>Evidencias</Text>
+            <Text style={styles.cardSub}>
+              {descripcion.trim() ? 'Adjunta archivos, enlaces o notas' : 'Primero escribe la descripción del aporte'}
+            </Text>
+          </View>
 
-          <EvidenciaUpload
-            actividadId={actividadesSeleccionadas[0] || ''}
-            onSuccess={handleEvidenciaGuardada}
-          />
+          {descripcion.trim() ? (
+            <EvidenciaUpload
+              actividadId={actividadesSeleccionadas[0] || ''}
+              onSuccess={handleEvidenciaGuardada}
+            />
+          ) : (
+            <View style={styles.disabledPlaceholder}>
+              <Icon name="lock-closed-outline" size={32} color={COLORS.disabled} />
+              <Text style={styles.disabledText}>
+                Debes escribir primero la descripción del aporte para poder agregar evidencias
+              </Text>
+            </View>
+          )}
 
           {evidenciasGuardadas.length > 0 && (
             <View style={styles.evidList}>
@@ -1000,6 +1016,22 @@ const styles = StyleSheet.create({
   audioHint: { fontSize: 11, color: COLORS.muted, lineHeight: 15 },
 
   // Evidencias
+  cardDisabled: {
+    opacity: 0.6,
+  },
+  disabledPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+  },
+  disabledText: {
+    fontSize: 13,
+    color: COLORS.muted,
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
   evidList: {
     marginTop: 14,
     paddingTop: 14,
