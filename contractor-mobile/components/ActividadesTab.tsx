@@ -56,7 +56,7 @@ export default function ActividadesTab() {
       key: 'mostrarPorcentaje',
       titulo: 'Mostrar Porcentaje',
       descripcion: 'Mostrar porcentaje de peso en cada actividad',
-      icon: 'percent-outline',
+      icon: 'analytics-outline',
     },
   ];
 

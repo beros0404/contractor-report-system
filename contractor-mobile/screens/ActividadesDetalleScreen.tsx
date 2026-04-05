@@ -6,7 +6,6 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  FlatList,
   Alert,
   Modal,
 } from 'react-native';
@@ -220,15 +219,13 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
 
         {/* Lista de actividades */}
         {actividades.length > 0 ? (
-          <FlatList
-            scrollEnabled={false}
-            data={actividades}
-            keyExtractor={(item) => item.id || item._id || item.numero.toString()}
-            renderItem={({ item }) => {
+          <View>
+            {actividades.map((item) => {
               const actividadEvidencias = getEvidenciasForActividad(item.id);
               const isExpanded = expandedActividadId === item.id;
               return (
                 <TouchableOpacity
+                  key={item.id || item._id || item.numero.toString()}
                   style={styles.actividadCard}
                   activeOpacity={0.7}
                   onPress={() => handleSelectActividad(item)}
@@ -272,7 +269,7 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
 
                   <View style={styles.actividadMeta}>
                     <View style={styles.metaItem}>
-                      <Icon name="percent" size={14} color="#6b7280" />
+                      <Icon name="pie-chart-outline" size={14} color="#6b7280" />
                       <Text style={styles.metaText}>{item.porcentajePeso}%</Text>
                     </View>
                     <View style={styles.metaItem}>
@@ -325,8 +322,8 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
                   )}
                 </TouchableOpacity>
               );
-            }}
-          />
+            })}
+          </View>
         ) : (
           <View style={styles.emptyContainer}>
             <Icon name="document-outline" size={64} color="#d1d5db" />

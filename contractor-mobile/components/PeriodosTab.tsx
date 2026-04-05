@@ -42,7 +42,7 @@ export default function PeriodosTab() {
       key: 'mostrarLineaTiempo',
       titulo: 'Mostrar Línea de Tiempo',
       descripcion: 'Mostrar línea de tiempo visual de períodos',
-      icon: 'gitbranch-outline',
+      icon: 'swap-vertical-outline',
     },
     {
       key: 'mostrarProximosPeriodos',
