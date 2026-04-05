@@ -1,212 +1,131 @@
-"use client"
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import Icon from '@expo/vector-icons/Ionicons';
 
-import { useState, useEffect } from "react"
-import { apiClient } from "@/lib/api-client"
-import { toast } from "sonner"
-import { useContrato } from "@/contexts/contrato-context"
-
-interface PeriodosTabProps {
-  onSave: () => void
+interface PeriodosConfig {
+  mostrarDiasRestantes: boolean;
+  alertasVencimiento: boolean;
+  mostrarLineaTiempo: boolean;
+  mostrarProximosPeriodos: boolean;
 }
 
-type FrecuenciaInforme = "semanal" | "quincenal" | "mensual"
+export default function PeriodosTab() {
+  const [config, setConfig] = useState<PeriodosConfig>({
+    mostrarDiasRestantes: true,
+    alertasVencimiento: true,
+    mostrarLineaTiempo: true,
+    mostrarProximosPeriodos: true,
+  });
 
-interface ConfiguracionPeriodos {
-  frecuenciaInforme: FrecuenciaInforme
-  diaGeneracion: number
-  periodoActualInicio: string
-  periodoActualFin: string
-  plantillaSeleccionada: string
-}
+  const toggleConfig = (key: keyof PeriodosConfig) => {
+    setConfig({
+      ...config,
+      [key]: !config[key],
+    });
+    Alert.alert('Configuración guardada', `${key} actualizado correctamente`);
+  };
 
-const frecuencias: { value: FrecuenciaInforme; label: string }[] = [
-  { value: "semanal", label: "Semanal" },
-  { value: "quincenal", label: "Quincenal" },
-  { value: "mensual", label: "Mensual" },
-]
-
-const plantillas = [
-  { id: "clasica", nombre: "Clásica" },
-  { id: "moderna", nombre: "Moderna" },
-  { id: "compacta", nombre: "Compacta" },
-]
-
-export function PeriodosTab({ onSave }: PeriodosTabProps) {
-  const { contratoActivo, usuarioId } = useContrato()
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState<ConfiguracionPeriodos>({
-    frecuenciaInforme: "mensual",
-    diaGeneracion: 30,
-    periodoActualInicio: "",
-    periodoActualFin: "",
-    plantillaSeleccionada: "clasica",
-  })
-
-  useEffect(() => {
-    if (contratoActivo && usuarioId) {
-      cargarConfiguracion()
-    }
-  }, [contratoActivo, usuarioId])
-
-  const cargarConfiguracion = async () => {
-    if (!contratoActivo || !usuarioId) return
-
-    try {
-      setLoading(true)
-      const data = await apiClient.getConfiguracion(contratoActivo, usuarioId)
-      
-      setForm({
-        frecuenciaInforme: data.reportes?.frecuencia || "mensual",
-        diaGeneracion: data.reportes?.diaGeneracion || 30,
-        periodoActualInicio: data.reportes?.periodoActualInicio ? data.reportes.periodoActualInicio.split('T')[0] : "",
-        periodoActualFin: data.reportes?.periodoActualFin ? data.reportes.periodoActualFin.split('T')[0] : "",
-        plantillaSeleccionada: data.reportes?.plantillaSeleccionada || "clasica",
-      })
-    } catch (error) {
-      console.error("Error cargando configuración:", error)
-      toast.error("Error al cargar la configuración")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!contratoActivo || !usuarioId) {
-      toast.error("No hay un contrato seleccionado")
-      return
-    }
-
-    try {
-      setSaving(true)
-      await apiClient.updateConfiguracion(contratoActivo, usuarioId, { 
-        reportes: form 
-      })
-      toast.success("Configuración de periodos actualizada")
-      onSave()
-    } catch (error) {
-      console.error("Error actualizando configuración:", error)
-      toast.error("Error al actualizar la configuración")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
+  const configItems = [
+    {
+      key: 'mostrarDiasRestantes',
+      titulo: 'Mostrar Días Restantes',
+      descripcion: 'Mostrar contador de días para vencimiento',
+      icon: 'timer-outline',
+    },
+    {
+      key: 'alertasVencimiento',
+      titulo: 'Alertas de Vencimiento',
+      descripcion: 'Alertar cuando falta poco para vencer un período',
+      icon: 'warning-outline',
+    },
+    {
+      key: 'mostrarLineaTiempo',
+      titulo: 'Mostrar Línea de Tiempo',
+      descripcion: 'Mostrar línea de tiempo visual de períodos',
+      icon: 'gitbranch-outline',
+    },
+    {
+      key: 'mostrarProximosPeriodos',
+      titulo: 'Mostrar Próximos Períodos',
+      descripcion: 'Mostrar vista previa de períodos próximos',
+      icon: 'eye-outline',
+    },
+  ];
 
   return (
-    <form onSubmit={handleSave} className="flex flex-col gap-6">
-      <div className="rounded-lg border border-border bg-card p-5">
-        <h3 className="mb-4 text-sm font-semibold text-card-foreground">
-          Frecuencia de Informes
-        </h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Frecuencia
-            </label>
-            <div className="flex items-center gap-1 rounded-md bg-muted p-1">
-              {frecuencias.map((f) => (
-                <button
-                  key={f.value}
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      frecuenciaInforme: f.value,
-                    }))
-                  }
-                  className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    form.frecuenciaInforme === f.value
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Día de generación
-            </label>
-            <input
-              type="number"
-              value={form.diaGeneracion}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  diaGeneracion: Number(e.target.value),
-                }))
-              }
-              min={1}
-              max={31}
-              className="h-9 w-24 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-5">
-        <h3 className="mb-4 text-sm font-semibold text-card-foreground">
-          Periodo Actual
-        </h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Fecha de inicio
-            </label>
-            <input
-              type="date"
-              value={form.periodoActualInicio}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  periodoActualInicio: e.target.value,
-                }))
-              }
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Fecha de fin
-            </label>
-            <input
-              type="date"
-              value={form.periodoActualFin}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  periodoActualFin: e.target.value,
-                }))
-              }
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
-        </div>
-      </div>
-
-
-
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? "Guardando..." : "Guardar Cambios"}
-        </button>
-      </div>
-    </form>
-  )
+    <ScrollView style={styles.container}>
+      {configItems.map((item) => (
+        <View key={item.key} style={styles.configItem}>
+          <View style={styles.itemHeader}>
+            <Icon name={item.icon as any} size={20} color="#8b5cf6" />
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemTitulo}>{item.titulo}</Text>
+              <Text style={styles.itemDescripcion}>{item.descripcion}</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.toggle, config[item.key as keyof PeriodosConfig] && styles.toggleActive]}
+            onPress={() => toggleConfig(item.key as keyof PeriodosConfig)}
+          >
+            <View style={[styles.toggleCircle, config[item.key as keyof PeriodosConfig] && styles.toggleCircleActive]} />
+          </TouchableOpacity>
+        </View>
+      ))}
+    </ScrollView>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  configItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemTitulo: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  itemDescripcion: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  toggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e5e7eb',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleActive: {
+    backgroundColor: '#8b5cf6',
+  },
+  toggleCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignSelf: 'flex-start',
+  },
+  toggleCircleActive: {
+    alignSelf: 'flex-end',
+  },
+});
