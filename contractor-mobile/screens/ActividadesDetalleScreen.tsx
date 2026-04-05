@@ -123,6 +123,14 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
     setShowEvidenciaForm(true);
   };
 
+  const handleCrearAporte = (actividad: Actividad) => {
+    if (!user) return;
+    navigation.navigate('Aporte', {
+      contratoId,
+      actividadId: actividad.id,
+    });
+  };
+
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'activa':
@@ -255,6 +263,13 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
                           size={24} 
                           color="#3b82f6" 
                         />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => handleCrearAporte(item)}
+                        title="Crear Aporte"
+                      >
+                        <Icon name="create-outline" size={24} color="#10b981" />
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.addButton}
