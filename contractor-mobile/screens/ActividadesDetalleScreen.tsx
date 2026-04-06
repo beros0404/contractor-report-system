@@ -123,12 +123,23 @@ export default function ActividadesDetalleScreen({ route, navigation }: any) {
     setShowEvidenciaForm(true);
   };
 
-  const handleCrearAporte = (actividad: Actividad) => {
+  const handleCrearAporte = async (actividad: Actividad) => {
     if (!user) return;
-    navigation.navigate('Aporte', {
-      contratoId,
-      actividadId: actividad.id,
-    });
+    try {
+      // Cargar el contrato completo para enviar a AporteScreen
+      const contratoCompleto = await api.getContrato(contratoId);
+      navigation.navigate('Aporte', {
+        contratoParam: contratoCompleto || { id: contratoId, numero: contratoNumero },
+        actividadId: actividad.id,
+      });
+    } catch (error) {
+      console.error('Error en handleCrearAporte:', error);
+      // Fallback: enviar solo lo que tenemos
+      navigation.navigate('Aporte', {
+        contratoParam: { id: contratoId, numero: contratoNumero },
+        actividadId: actividad.id,
+      });
+    }
   };
 
   const getEstadoColor = (estado: string) => {
