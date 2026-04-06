@@ -45,7 +45,29 @@ function dateToColombiaString(date: Date): string {
 
 /** Formatea YYYY-MM-DD a "DD/MM/YYYY" para mostrar */
 function formatDate(str: string): string {
-  const [y, m, d] = str.split('-');
+  if (!str || typeof str !== 'string') {
+    console.error('[v0] formatDate: str inválido', str);
+    return 'Fecha inválida';
+  }
+  
+  // Si contiene slashes, es que ya está formateado o corrupto
+  if (str.includes('/')) {
+    console.warn('[v0] formatDate: str ya tiene slashes', str);
+    return str;
+  }
+  
+  const parts = str.split('-');
+  if (parts.length !== 3) {
+    console.error('[v0] formatDate: str no tiene formato YYYY-MM-DD', str);
+    return 'Fecha inválida';
+  }
+  
+  const [y, m, d] = parts;
+  if (!y || !m || !d) {
+    console.error('[v0] formatDate: partes faltantes', { y, m, d });
+    return 'Fecha inválida';
+  }
+  
   return `${d}/${m}/${y}`;
 }
 
@@ -74,6 +96,7 @@ export default function AporteScreen({ navigation, route }: any) {
   const {
     actividadId: preseleccionada,
     descripcion: descripcionPrefill,
+    contratoParam,  // contrato completo pasado desde ActividadesDetalleScreen
   } = route.params || {};
 
   // — Estado general
@@ -144,7 +167,12 @@ export default function AporteScreen({ navigation, route }: any) {
     try {
       const data: Contrato[] = await api.getContratos(uid);
       setContratos(data);
-      if (data.length > 0) {
+      
+      // Si viene contratoParam desde ActividadesDetalleScreen, preseleccionarlo
+      if (contratoParam && contratoParam.id) {
+        await selectContrato(contratoParam, uid);
+      } else if (data.length > 0) {
+        // Si no, seleccionar el primero
         await selectContrato(data[0], uid);
       }
     } catch (e) {
