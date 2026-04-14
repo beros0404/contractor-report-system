@@ -176,18 +176,36 @@ export const apiClient = {
     }
   },
 
-  async deleteActividad(id: string, usuarioId: string) {
-    try {
-      const res = await fetch(`${API_URL}/api/activities/${id}?usuarioId=${usuarioId}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) throw new Error('Error al eliminar actividad');
-      return res.json();
-    } catch (error) {
-      console.error('Error eliminando actividad:', error);
-      throw error;
+async deleteActividad(actividadId: string, usuarioId: string): Promise<void> {
+  try {
+    if (!usuarioId) {
+      throw new Error('usuarioId es requerido para eliminar actividad');
     }
-  },
+    
+    const url = `${API_URL}/api/activities/${actividadId}?usuarioId=${encodeURIComponent(usuarioId)}`;
+    
+    console.log('🗑️ DELETE URL:', url);
+    
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    console.log('📡 DELETE Response status:', res.status); 
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || `Error al eliminar actividad: ${res.status}`);
+    }
+    
+    return res.json();
+  } catch (error) {
+    console.error('Error eliminando actividad:', error);
+    throw error;
+  }
+},
 
   async getAportes(contratoId: string, usuarioId: string) {
     try {

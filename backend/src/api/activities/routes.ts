@@ -90,6 +90,71 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { usuarioId } = req.query;
+    
+    console.log(`🗑️ DELETE /api/activities/${id}`);
+    console.log(`📌 usuarioId:`, usuarioId);
+    
+    if (!usuarioId) {
+      return res.status(400).json({ error: 'usuarioId es requerido' });
+    }
+    
+    const actividad = await Activity.findOne({ 
+      id: id, 
+      usuarioId: usuarioId.toString() 
+    });
+    
+    if (!actividad) {
+      console.log(`❌ Actividad no encontrada con id: ${id}`);
+      return res.status(404).json({ 
+        error: 'Actividad no encontrada',
+        message: `No se encontró la actividad con ID: ${id}`
+      });
+    }
+    
+    const resultado = await Activity.deleteOne({ 
+      id: id, 
+      usuarioId: usuarioId.toString() 
+    });
+    
+    if (resultado.deletedCount === 0) {
+      return res.status(404).json({ error: 'No se pudo eliminar la actividad' });
+    }
+    
+    console.log(`✅ Actividad eliminada: ${actividad.titulo}`);
+    
+    const actividadesRestantes = await Activity.find({ 
+      usuarioId: usuarioId.toString(),
+      contratoId: actividad.contratoId
+    }).sort({ numero: 1 });
+    
+    for (let i = 0; i < actividadesRestantes.length; i++) {
+      if (actividadesRestantes[i].numero !== i + 1) {
+        await Activity.updateOne(
+          { id: actividadesRestantes[i].id },
+          { numero: i + 1 }
+        );
+      }
+    }
+    
+    res.json({ 
+      message: 'Actividad eliminada correctamente',
+      deletedId: id,
+      actividadEliminada: actividad
+    });
+    
+  } catch (error) {
+    console.error('❌ Error eliminando actividad:', error);
+    res.status(500).json({ 
+      error: 'Error al eliminar actividad',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const { usuarioId, contratoId } = req.query;
