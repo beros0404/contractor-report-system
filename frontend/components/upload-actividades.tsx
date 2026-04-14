@@ -1,11 +1,28 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Upload, FileText, Loader2, CheckCircle, X, Edit2, Trash2, Plus } from "lucide-react"
+import { Upload, FileText, Loader2, CheckCircle, X, Edit2, Trash2, Plus, GripVertical } from "lucide-react"
 import { toast } from "sonner"
 import * as Tesseract from "tesseract.js"
 import * as pdfjsLib from "pdfjs-dist"
 import mammoth from "mammoth"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -18,6 +35,122 @@ interface UploadActividadesProps {
   usuarioId: string
 }
 
+// Componente para actividad con drag and drop
+const SortableActividad = ({ 
+  actividad, 
+  index, 
+  editMode, 
+  editText, 
+  setEditText, 
+  setEditMode, 
+  onDelete,
+  onSave 
+}: { 
+  actividad: string, 
+  index: number,
+  editMode: number | null,
+  editText: string,
+  setEditText: (text: string) => void,
+  setEditMode: (index: number | null) => void,
+  onDelete: (index: number) => void,
+  onSave: (index: number, newText: string) => void,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: index })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="p-3 border-b border-border last:border-0 hover:bg-accent/50 group transition-colors"
+    >
+      <div className="flex items-start gap-2">
+        {/* Manejador de drag */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded mt-0.5"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        
+        <span className="text-xs font-medium text-muted-foreground mt-0.5 min-w-[24px]">
+          {index + 1}.
+        </span>
+        
+        {editMode === index ? (
+          <div className="flex-1">
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="w-full p-2 border border-input rounded-md text-sm resize-y focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+              rows={3}
+              autoFocus
+              placeholder="Escribe la actividad aquí..."
+            />
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => onSave(index, editText)}
+                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                Guardar
+              </button>
+              <button
+                onClick={() => {
+                  setEditMode(null)
+                  setEditText("")
+                }}
+                className="px-2 py-1 text-xs border border-border rounded hover:bg-accent transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1">
+              <p className="text-sm whitespace-pre-wrap">
+                {actividad || <span className="text-muted-foreground italic">[Actividad vacía]</span>}
+              </p>
+            </div>
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => {
+                  setEditText(actividad)
+                  setEditMode(index)
+                }}
+                className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="Editar"
+              >
+                <Edit2 className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => onDelete(index)}
+                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Eliminar"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function UploadActividades({ onActividadesExtracted, contratoId, usuarioId }: UploadActividadesProps) {
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -27,12 +160,35 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
   const [editText, setEditText] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Configurar sensores para drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Manejar el final del drag and drop
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    
+    if (over && active.id !== over.id) {
+      setPreview((items) => {
+        const oldIndex = items.findIndex((_, idx) => idx === active.id)
+        const newIndex = items.findIndex((_, idx) => idx === over.id)
+        const newItems = arrayMove(items, oldIndex, newIndex)
+        toast.success("Orden actualizado")
+        return newItems
+      })
+    }
+  }
+
   const extractTextFromPDF = async (file: File): Promise<string> => {
-    try {
-      console.log("📄 Iniciando extracción de PDF...")
-      console.log("📄 Nombre del archivo:", file.name)
-      console.log("📄 Tamaño:", (file.size / 1024).toFixed(2), "KB")
-      
+    try {      
       const arrayBuffer = await file.arrayBuffer()
       
       const loadingTask = pdfjsLib.getDocument({ 
@@ -42,7 +198,6 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
       })
       
       const pdf = await loadingTask.promise
-      console.log(`📄 PDF cargado con ${pdf.numPages} páginas`)
       
       let fullText = ""
 
@@ -62,19 +217,12 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
           .replace(/\s+/g, ' ')
           .trim()
         
-        console.log(`📄 Página ${i}: ${pageText.length} caracteres extraídos`)
-        console.log(`📄 Contenido página ${i}:`, pageText.substring(0, 5000))
-        
         fullText += pageText + '\n'
         setProgress(Math.round((i / pdf.numPages) * 100))
       }
-
-      console.log("✅ PDF procesado exitosamente")
-      console.log("📄 Texto total extraído:", fullText.length, "caracteres")
       
       return fullText
     } catch (error) {
-      console.error("❌ Error extrayendo PDF:", error)
       throw error
     }
   }
@@ -85,7 +233,6 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
       const result = await mammoth.extractRawText({ arrayBuffer })
       return result.value
     } catch (error) {
-      console.error("❌ Error extrayendo DOCX:", error)
       throw error
     }
   }
@@ -107,187 +254,149 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
   }
 
   const parseActividades = (text: string): string[] => {
-  console.log("📄 Extrayendo actividades del texto...")
-  console.log("📄 Longitud total del texto:", text.length)
-  console.log("📄 Primos 500 caracteres:", text.substring(0, 500))
-  
-  const actividades: string[] = []
-  
-  // Limpiar el texto primero - eliminar caracteres especiales
-  let cleanedText = text
-    .replace(/\r\n/g, '\n')
-    .replace(/\n+/g, '\n')
-    .replace(/[•\-–—]/g, ' ')
-  
-  // Buscar la sección de actividades
-  const seccionRegex = /ACTIVIDADES?\s*(?:ESPECÍFICAS?\s*)?DEL\s*CONTRATISTA:?\s*([\s\S]*?)(?=OBSERVACIONES|FIRMAS|---|$)/i
-  const seccionMatch = cleanedText.match(seccionRegex)
-  
-  let contenidoActividades = seccionMatch ? seccionMatch[1] : cleanedText
-  console.log("📄 Contenido de actividades:", contenidoActividades.substring(0, 500))
-  
-  // Método principal: Buscar patrones numerados
-  const patronNumerado = /(\d+)\.\s+([^0-9]+?)(?=\d+\.|OBSERVACIONES|FIRMAS|---|$)/gi
-  let match
-  
-  while ((match = patronNumerado.exec(contenidoActividades)) !== null) {
-    let actividad = match[2] ? match[2].trim() : ""
+    const actividades: string[] = []
     
-    if (!actividad) continue
+    let cleanedText = text
+      .replace(/\r\n/g, '\n')
+      .replace(/\n+/g, '\n')
+      .replace(/[•\-–—]/g, ' ')
     
-    // Limpiar la actividad
-    actividad = actividad
-      .replace(/\s+/g, ' ')
-      .replace(/["']/g, '')
-      .replace(/^[•\-–—]\s*/, '')
-      .trim()
+    const seccionRegex = /ACTIVIDADES?\s*(?:ESPECÍFICAS?\s*)?DEL\s*CONTRATISTA:?\s*([\s\S]*?)(?=OBSERVACIONES|FIRMAS|---|$)/i
+    const seccionMatch = cleanedText.match(seccionRegex)
     
-    // Eliminar texto después de ---, OBSERVACIONES, FIRMAS
-    actividad = actividad.split('---')[0]
-    actividad = actividad.split('OBSERVACIONES')[0]
-    actividad = actividad.split('FIRMAS')[0]
-    actividad = actividad.trim()
+    let contenidoActividades = seccionMatch ? seccionMatch[1] : cleanedText
     
-    // Validar que sea una actividad real
-    const esActividadValida = 
-      actividad.length > 20 && 
-      actividad.length < 500 &&
-      !actividad.includes('ACTIVIDADES') &&
-      !actividad.includes('CONTRATISTA') &&
-      !actividad.includes('OBJETO') &&
-      !actividad.includes('FECHA') &&
-      !actividad.includes('NÚMERO') &&
-      !actividad.includes('VIGENCIA') &&
-      !actividad.includes('OBSERVACIONES') &&
-      !actividad.includes('FIRMAS') &&
-      !actividad.match(/^[A-Z\s]{10,}$/) // No son todo mayúsculas y largas
+    const patronNumerado = /(\d+)\.\s+([^0-9]+?)(?=\d+\.|OBSERVACIONES|FIRMAS|---|$)/gi
+    let match
     
-    if (esActividadValida) {
-      // Cortar si es muy larga (más de 300 caracteres)
-      if (actividad.length > 300) {
-        const puntoIndex = actividad.indexOf('.', 250)
-        if (puntoIndex > 0) {
-          actividad = actividad.substring(0, puntoIndex + 1)
-        } else {
-          actividad = actividad.substring(0, 300) + '...'
+    while ((match = patronNumerado.exec(contenidoActividades)) !== null) {
+      let actividad = match[2] ? match[2].trim() : ""
+      
+      if (!actividad) continue
+      
+      actividad = actividad
+        .replace(/\s+/g, ' ')
+        .replace(/["']/g, '')
+        .replace(/^[•\-–—]\s*/, '')
+        .trim()
+      
+      actividad = actividad.split('---')[0]
+      actividad = actividad.split('OBSERVACIONES')[0]
+      actividad = actividad.split('FIRMAS')[0]
+      actividad = actividad.trim()
+      
+      const esActividadValida = 
+        actividad.length > 20 && 
+        actividad.length < 500 &&
+        !actividad.includes('ACTIVIDADES') &&
+        !actividad.includes('CONTRATISTA') &&
+        !actividad.includes('OBJETO') &&
+        !actividad.includes('FECHA') &&
+        !actividad.includes('NÚMERO') &&
+        !actividad.includes('VIGENCIA') &&
+        !actividad.includes('OBSERVACIONES') &&
+        !actividad.includes('FIRMAS') &&
+        !actividad.match(/^[A-Z\s]{10,}$/) 
+      
+      if (esActividadValida) {
+        if (actividad.length > 900) {
+          const puntoIndex = actividad.indexOf('.', 250)
+          if (puntoIndex > 0) {
+            actividad = actividad.substring(0, puntoIndex + 1)
+          } else {
+            actividad = actividad.substring(0, 900) + '...'
+          }
         }
+        
+        actividades.push(actividad)
+      }
+    }
+    
+    if (actividades.length === 0) {
+      const todosLosNumeros = /(\d+)\.\s+([^0-9]{20,}?)(?=\d+\.|$)/gi
+      while ((match = todosLosNumeros.exec(cleanedText)) !== null) {
+        let actividad = match[2] ? match[2].trim() : ""
+        if (actividad) {
+          actividad = actividad.replace(/\s+/g, ' ').trim()
+          if (actividad.length > 20 && actividad.length < 500 &&
+              !actividad.includes('ACTIVIDADES') && 
+              !actividad.includes('CONTRATISTA')) {
+            actividades.push(actividad)
+          }
+        }
+      }
+    }
+    
+    if (actividades.length === 0) {
+      const lineas = cleanedText.split(/\n|\.\s+/)
+      for (const linea of lineas) {
+        const trimmed = linea.trim()
+        if (trimmed && trimmed.match(/^\d+\./) && trimmed.length > 20) {
+          let actividad = trimmed.replace(/^\d+\.\s*/, '')
+          actividad = actividad.replace(/\s+/g, ' ').trim()
+          if (actividad.length > 20 && !actividad.includes('ACTIVIDADES')) {
+            actividades.push(actividad)
+          }
+        }
+      }
+    }
+    
+    const actividadesLimpias: string[] = []
+    
+    for (let act of actividades) {
+      if (!act || typeof act !== 'string') continue
+      
+      if (act.includes('ACTIVIDADES ESPECÍFICAS') || 
+          act.includes('ACTIVIDADES DEL CONTRATISTA')) {
+        continue
       }
       
-      actividades.push(actividad)
-      console.log(`✅ Actividad ${match[1]} encontrada:`, actividad.substring(0, 100))
-    }
-  }
-  
-  // Si no se encontraron con el método principal, buscar números en el texto completo
-  if (actividades.length === 0) {
-    console.log("⚠️ Buscando números en todo el texto")
-    const todosLosNumeros = /(\d+)\.\s+([^0-9]{20,}?)(?=\d+\.|$)/gi
-    while ((match = todosLosNumeros.exec(cleanedText)) !== null) {
-      let actividad = match[2] ? match[2].trim() : ""
-      if (actividad) {
-        actividad = actividad.replace(/\s+/g, ' ').trim()
-        if (actividad.length > 20 && actividad.length < 500 &&
-            !actividad.includes('ACTIVIDADES') && 
-            !actividad.includes('CONTRATISTA')) {
-          actividades.push(actividad)
-          console.log(`✅ Actividad encontrada:`, actividad.substring(0, 100))
-        }
+      act = act.split('---')[0]
+      act = act.split('OBSERVACIONES')[0]
+      act = act.split('FIRMAS')[0]
+      
+      act = act
+        .replace(/^[A-Z][a-z]{2,3}:\s*/, '')
+        .replace(/^-\s*/, '')
+        .replace(/\s+/g, ' ')
+        .replace(/["']/g, '')
+        .trim()
+      
+      if (act && act.length > 20) {
+        actividadesLimpias.push(act)
       }
     }
-  }
-  
-  // Método de respaldo: buscar líneas que comienzan con número
-  if (actividades.length === 0) {
-    console.log("⚠️ Buscando líneas con números")
-    const lineas = cleanedText.split(/\n|\.\s+/)
-    for (const linea of lineas) {
-      const trimmed = linea.trim()
-      if (trimmed && trimmed.match(/^\d+\./) && trimmed.length > 20) {
-        let actividad = trimmed.replace(/^\d+\.\s*/, '')
-        actividad = actividad.replace(/\s+/g, ' ').trim()
-        if (actividad.length > 20 && !actividad.includes('ACTIVIDADES')) {
-          actividades.push(actividad)
-          console.log(`✅ Actividad encontrada:`, actividad.substring(0, 100))
-        }
+    
+    const actividadesUnicas = actividadesLimpias.filter((act, index, self) => 
+      self.indexOf(act) === index
+    )
+    
+    const actividadesFinales: string[] = []
+    
+    for (const act of actividadesUnicas) {
+      if (!act) continue
+      
+      const esInvalida = 
+        act.includes('ACTIVIDADES ESPECÍFICAS') ||
+        act.includes('ACTIVIDADES DEL CONTRATISTA') ||
+        act.includes('OBJETO DEL CONTRATO') ||
+        act.includes('FECHA DE INICIO') ||
+        act.includes('NÚMERO DEL CONTRATO') ||
+        act.includes('VIGENCIA') ||
+        act.includes('OBSERVACIONES') ||
+        act.includes('FIRMAS') ||
+        act.length < 20 ||
+        act.split(' ').length < 4
+      
+      if (!esInvalida) {
+        actividadesFinales.push(act)
       }
     }
+    
+    const actividadesLimitadas = actividadesFinales.slice(0, 50)
+    
+    return actividadesLimitadas
   }
-  
-  // Limpiar todas las actividades y filtrar nulos/vacíos
-  const actividadesLimpias: string[] = []
-  
-  for (let act of actividades) {
-    // Saltar si es null, undefined o vacío
-    if (!act || typeof act !== 'string') continue
-    
-    // Eliminar títulos de sección
-    if (act.includes('ACTIVIDADES ESPECÍFICAS') || 
-        act.includes('ACTIVIDADES DEL CONTRATISTA')) {
-      continue
-    }
-    
-    // Eliminar texto después de marcadores
-    act = act.split('---')[0]
-    act = act.split('OBSERVACIONES')[0]
-    act = act.split('FIRMAS')[0]
-    
-    // Limpiar
-    act = act
-      .replace(/^[A-Z][a-z]{2,3}:\s*/, '')
-      .replace(/^-\s*/, '')
-      .replace(/\s+/g, ' ')
-      .replace(/["']/g, '')
-      .trim()
-    
-    // Validar que la actividad sea válida
-    if (act && act.length > 20) {
-      actividadesLimpias.push(act)
-    }
-  }
-  
-  // Eliminar duplicados
-  const actividadesUnicas = actividadesLimpias.filter((act, index, self) => 
-    self.indexOf(act) === index
-  )
-  
-  // Filtrar actividades inválidas
-  const actividadesFinales: string[] = []
-  
-  for (const act of actividadesUnicas) {
-    if (!act) continue
-    
-    const esInvalida = 
-      act.includes('ACTIVIDADES ESPECÍFICAS') ||
-      act.includes('ACTIVIDADES DEL CONTRATISTA') ||
-      act.includes('OBJETO DEL CONTRATO') ||
-      act.includes('FECHA DE INICIO') ||
-      act.includes('NÚMERO DEL CONTRATO') ||
-      act.includes('VIGENCIA') ||
-      act.includes('OBSERVACIONES') ||
-      act.includes('FIRMAS') ||
-      act.length < 20 ||
-      act.split(' ').length < 4
-    
-    if (!esInvalida) {
-      actividadesFinales.push(act)
-    }
-  }
-  
-  // Limitar a 20 actividades
-  const actividadesLimitadas = actividadesFinales.slice(0, 20)
-  
-  console.log("🎯 Actividades extraídas:", actividadesLimitadas.length)
-  if (actividadesLimitadas.length === 0) {
-    console.log("⚠️ No se encontraron actividades. Mostrando texto original para debug:")
-    console.log(cleanedText.substring(0, 1000))
-  } else {
-    actividadesLimitadas.forEach((act, idx) => {
-      console.log(`   ${idx + 1}. ${act.substring(0, 100)}${act.length > 100 ? '...' : ''}`)
-    })
-  }
-  
-  return actividadesLimitadas
-}
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -321,21 +430,22 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
       if (!text || text.trim().length === 0) {
         throw new Error("No se pudo extraer texto del archivo")
       }
-
-      console.log("📄 Texto extraído completo")
+      
+      console.log("Texto extraído:", text)
       
       const actividades = parseActividades(text)
+      
+      console.log("Actividades encontradas:", actividades)
       
       setPreview(actividades)
       
       if (actividades.length === 0) {
         toast.error("No se encontraron actividades en el documento. Asegúrate de que el documento contenga una lista numerada de actividades.")
       } else {
-        toast.success(`${actividades.length} actividades encontradas. Puedes editarlas antes de guardar.`)
+        toast.success(`${actividades.length} actividades encontradas. Arrastra las actividades para reordenarlas.`)
       }
 
     } catch (error) {
-      console.error("❌ Error procesando archivo:", error)
       toast.error(error instanceof Error ? error.message : "Error al procesar el archivo")
     } finally {
       setUploading(false)
@@ -356,7 +466,6 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
       handleCancel()
       toast.success(`${actividadesValidas.length} actividades guardadas correctamente`)
     } catch (error) {
-      console.error("❌ Error guardando actividades:", error)
       toast.error("Error al guardar las actividades")
     }
   }
@@ -369,6 +478,29 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
+  }
+
+  const handleSaveActividad = (index: number, newText: string) => {
+    if (newText.trim()) {
+      const nuevas = [...preview]
+      nuevas[index] = newText.trim()
+      setPreview(nuevas)
+      setEditMode(null)
+      setEditText("")
+      toast.success("Actividad actualizada")
+    } else {
+      toast.error("La actividad no puede estar vacía")
+    }
+  }
+
+  const handleDeleteActividad = (index: number) => {
+    const nuevas = preview.filter((_, i) => i !== index)
+    setPreview(nuevas)
+    if (editMode === index) {
+      setEditMode(null)
+      setEditText("")
+    }
+    toast.info("Actividad eliminada")
   }
 
   return (
@@ -448,94 +580,30 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
             </div>
 
             <div className="max-h-96 overflow-y-auto border border-border rounded-lg mb-4">
-              {preview.map((act, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 border-b border-border last:border-0 hover:bg-accent/50 group transition-colors"
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={preview.map((_, idx) => idx)}
+                  strategy={verticalListSortingStrategy}
                 >
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-medium text-muted-foreground mt-0.5">
-                      {idx + 1}.
-                    </span>
-                    
-                    {editMode === idx ? (
-                      <div className="flex-1">
-                        <textarea
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          className="w-full p-2 border border-input rounded-md text-sm resize-y focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-                          rows={3}
-                          autoFocus
-                          placeholder="Escribe la actividad aquí..."
-                        />
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={() => {
-                              if (editText.trim()) {
-                                const nuevas = [...preview]
-                                nuevas[idx] = editText.trim()
-                                setPreview(nuevas)
-                                setEditMode(null)
-                                setEditText("")
-                                toast.success("Actividad actualizada")
-                              } else {
-                                toast.error("La actividad no puede estar vacía")
-                              }
-                            }}
-                            className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                          >
-                            Guardar
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditMode(null)
-                              setEditText("")
-                            }}
-                            className="px-2 py-1 text-xs border border-border rounded hover:bg-accent transition-colors"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex-1">
-                          <p className="text-sm whitespace-pre-wrap">
-                            {act || <span className="text-muted-foreground italic">[Actividad vacía]</span>}
-                          </p>
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => {
-                              setEditText(act)
-                              setEditMode(idx)
-                            }}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const nuevas = preview.filter((_, i) => i !== idx)
-                              setPreview(nuevas)
-                              if (editMode === idx) {
-                                setEditMode(null)
-                                setEditText("")
-                              }
-                              toast.info("Actividad eliminada")
-                            }}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  {preview.map((act, idx) => (
+                    <SortableActividad
+                      key={idx}
+                      actividad={act}
+                      index={idx}
+                      editMode={editMode}
+                      editText={editText}
+                      setEditText={setEditText}
+                      setEditMode={setEditMode}
+                      onDelete={handleDeleteActividad}
+                      onSave={handleSaveActividad}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
             </div>
 
             <div className="flex gap-3">

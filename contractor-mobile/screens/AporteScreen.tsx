@@ -18,9 +18,6 @@ import Icon from '@expo/vector-icons/Ionicons';
 import { api } from '../lib/api';
 import { EvidenciaUpload } from '../components/EvidenciaUpload';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-/** Fecha actual en zona horaria Colombia (UTC-5) como string YYYY-MM-DD */
 function getCurrentColombiaDate(): string {
   const now = new Date();
   const colombiaOffset = -5 * 60;
@@ -54,18 +51,30 @@ const MAX_DESC = 500;
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
 interface Contrato {
-  id: string;
+  id?: string;
+  _id?: string;
   numero?: string;
   numeroContrato?: string;
   entidad?: string;
   fechaFin?: string;
 }
 
+/** Resuelve el identificador real del contrato independiente del campo que use el API */
+function getContratoId(c: Contrato): string {
+  return c.id || c._id || c.numeroContrato || c.numero || '';
+}
+
 interface Actividad {
-  id: string;
+  id?: string;
+  _id?: string;
   titulo: string;
   descripcion?: string;
   numero?: number;
+}
+
+/** Resuelve el identificador real de la actividad */
+function getActividadId(a: Actividad): string {
+  return a.id || a._id || '';
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -74,6 +83,7 @@ export default function AporteScreen({ navigation, route }: any) {
   const {
     actividadId: preseleccionada,
     descripcion: descripcionPrefill,
+    contratoParam,           // contrato completo pasado desde ActividadesScreen
   } = route.params || {};
 
   // — Estado general
@@ -93,6 +103,7 @@ export default function AporteScreen({ navigation, route }: any) {
 
   // — UI
   const [loading, setLoading] = useState(true);
+  const [loadingActividades, setLoadingActividades] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showContratoModal, setShowContratoModal] = useState(false);
@@ -141,49 +152,57 @@ export default function AporteScreen({ navigation, route }: any) {
   }, []);
 
   const loadContratos = async (uid: string) => {
+    // Leer params frescos aquí para evitar problemas de closure
+    const { contratoParam, actividadId: presel } = route.params || {};
     try {
       const data: Contrato[] = await api.getContratos(uid);
       setContratos(data);
-      if (data.length > 0) {
-        await selectContrato(data[0], uid);
+
+      if (contratoParam) {
+        const encontrado = data.find(
+          (c) => getContratoId(c) === getContratoId(contratoParam)
+        ) || contratoParam;
+        await selectContrato(encontrado, uid, presel);
+      } else if (data.length === 1) {
+        await selectContrato(data[0], uid, presel);
       }
     } catch (e) {
       console.error('Error contratos:', e);
     }
   };
 
-  const selectContrato = async (contrato: Contrato, uid?: string) => {
+  const selectContrato = async (contrato: Contrato, uid?: string, actividadIdToPresel?: string) => {
     const resolvedUid = uid || userId;
+    const contratoId = getContratoId(contrato);
     try {
-      // Obtener detalles completos (incluye fechaFin)
-      let contratoCompleto = contrato;
-      if (api.getContrato) {
-        contratoCompleto = await api.getContrato(contrato.id);
-      }
-      setContratoActivo(contratoCompleto);
-      if (resolvedUid) {
-        await loadActividades(contratoCompleto.id, resolvedUid, contratoCompleto);
+      setContratoActivo(contrato);
+      if (resolvedUid && contratoId) {
+        await loadActividades(contratoId, resolvedUid, actividadIdToPresel);
       }
     } catch (e) {
-      setContratoActivo(contrato);
+      console.error('Error en selectContrato:', e);
     }
   };
 
   const loadActividades = async (
     contratoId: string,
     uid: string,
-    contrato?: Contrato
+    actividadIdToPresel?: string
   ) => {
+    setLoadingActividades(true);
     try {
       const data: Actividad[] = await api.getActividades(contratoId, uid);
       setActividades(Array.isArray(data) ? data : []);
-      // Preseleccionar si viene del route
-      if (preseleccionada && data.some((a) => a.id === preseleccionada)) {
-        setActividadesSeleccionadas([preseleccionada]);
+      // Preseleccionar actividad si viene como param
+      const toPresel = actividadIdToPresel || preseleccionada;
+      if (toPresel && data.some((a) => getActividadId(a) === toPresel)) {
+        setActividadesSeleccionadas([toPresel]);
       }
     } catch (e) {
       console.error('Error actividades:', e);
       setActividades([]);
+    } finally {
+      setLoadingActividades(false);
     }
   };
 
@@ -216,15 +235,17 @@ export default function AporteScreen({ navigation, route }: any) {
     setActividadesSeleccionadas(
       actividadesSeleccionadas.length === actividades.length
         ? []
-        : actividades.map((a) => a.id)
+        : actividades.map((a) => getActividadId(a)).filter(Boolean)
     );
   };
+
 
   // ─── Cambio de contrato ───────────────────────────────────────────────────
 
   const handleChangeContrato = async (contrato: Contrato) => {
     setShowContratoModal(false);
     setActividadesSeleccionadas([]);
+    setActividades([]);
     await selectContrato(contrato);
   };
 
@@ -282,7 +303,7 @@ export default function AporteScreen({ navigation, route }: any) {
         if (finalTranscriptRef.current.trim()) {
           setIsProcessing(true);
           setTimeout(() => {
-            setDescripcion((prev) =>
+            setDescripcion((prev: String) =>
               prev ? `${prev} ${finalTranscriptRef.current.trim()}` : finalTranscriptRef.current.trim()
             );
             setIsProcessing(false);
@@ -320,7 +341,7 @@ export default function AporteScreen({ navigation, route }: any) {
   // ─── Submit ───────────────────────────────────────────────────────────────
 
   const handleSubmit = async (asBorrador: boolean) => {
-    if (!contratoActivo?.id || !userId) {
+    if (!contratoActivo || !getContratoId(contratoActivo) || !userId) {
       Alert.alert('Error', 'No hay un contrato seleccionado');
       return;
     }
@@ -355,7 +376,7 @@ export default function AporteScreen({ navigation, route }: any) {
               monto: 1,
             },
             userId,
-            contratoActivo.id
+            getContratoId(contratoActivo)
           )
         )
       );
@@ -411,9 +432,11 @@ export default function AporteScreen({ navigation, route }: any) {
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Nuevo Aporte</Text>
           <Text style={styles.headerSub}>
-            {contratoActivo?.numero || contratoActivo?.numeroContrato
-              ? `Contrato ${contratoLabel}`
-              : 'Documenta tu actividad de hoy'}
+            {contratoActivo
+              ? `Contrato ${contratoActivo.numero || contratoActivo.numeroContrato}`
+              : contratos.length > 1
+                ? 'Selecciona un contrato para continuar'
+                : 'Documenta tu actividad de hoy'}
           </Text>
         </View>
       </View>
@@ -429,17 +452,42 @@ export default function AporteScreen({ navigation, route }: any) {
           <Text style={styles.cardTitle}>Información general</Text>
 
           {/* Contrato */}
-          <Field label="Contrato activo">
+          <Field label="Contrato activo *">
             <TouchableOpacity
-              style={styles.selector}
+              style={[
+                styles.selector,
+                !contratoActivo && { borderColor: COLORS.primary, borderWidth: 1.5 },
+              ]}
               onPress={() => setShowContratoModal(true)}
             >
-              <Icon name="document-text-outline" size={18} color={COLORS.muted} />
-              <Text style={styles.selectorText} numberOfLines={1}>
-                {contratoLabel}
+              <Icon
+                name="document-text-outline"
+                size={18}
+                color={contratoActivo ? COLORS.muted : COLORS.primary}
+              />
+              <Text
+                style={[
+                  styles.selectorText,
+                  !contratoActivo && { color: COLORS.primary, fontWeight: '600' },
+                ]}
+                numberOfLines={1}
+              >
+                {contratoActivo
+                  ? contratoActivo.numero || contratoActivo.numeroContrato
+                  : contratos.length > 0
+                    ? 'Toca para seleccionar contrato'
+                    : 'Sin contratos disponibles'}
               </Text>
-              <Icon name="chevron-down" size={16} color={COLORS.muted} />
+              <Icon name="chevron-down" size={16} color={contratoActivo ? COLORS.muted : COLORS.primary} />
             </TouchableOpacity>
+            {!contratoActivo && contratos.length > 0 && (
+              <View style={styles.fieldError}>
+                <Icon name="information-circle-outline" size={12} color={COLORS.primary} />
+                <Text style={[styles.fieldErrorText, { color: COLORS.primary }]}>
+                  Selecciona un contrato para ver las actividades
+                </Text>
+              </View>
+            )}
           </Field>
 
           {/* Fecha */}
@@ -458,11 +506,17 @@ export default function AporteScreen({ navigation, route }: any) {
             <DateTimePicker
               value={colombiaStringToDate(fecha)}
               mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
               maximumDate={maxFechaDate || new Date()}
               onChange={(_: DateTimePickerEvent, selected?: Date) => {
-                setShowDatePicker(false);
-                if (selected) setFecha(dateToColombiaString(selected));
+                // En Android hay que ocultar el picker siempre, incluso si cancela
+                if (Platform.OS === 'android') setShowDatePicker(false);
+                if (selected) {
+                  setFecha(dateToColombiaString(selected));
+                  if (Platform.OS === 'ios') setShowDatePicker(false);
+                } else {
+                  setShowDatePicker(false);
+                }
               }}
             />
           )}
@@ -472,14 +526,18 @@ export default function AporteScreen({ navigation, route }: any) {
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <View>
-              <Text style={styles.cardTitle}>Actividades contractuales</Text>
+              <Text style={styles.cardTitle}>Actividades contractuales *</Text>
               <Text style={styles.cardSub}>
-                {selCount === 0
-                  ? 'Selecciona al menos una'
-                  : `${selCount} seleccionada${selCount !== 1 ? 's' : ''}`}
+                {!contratoActivo
+                  ? 'Primero selecciona un contrato'
+                  : loadingActividades
+                    ? 'Cargando actividades...'
+                    : selCount === 0
+                      ? 'Selecciona al menos una'
+                      : `${selCount} seleccionada${selCount !== 1 ? 's' : ''}`}
               </Text>
             </View>
-            {actividades.length > 1 && (
+            {contratoActivo && !loadingActividades && actividades.length > 1 && (
               <TouchableOpacity onPress={toggleTodas} style={styles.chipBtn}>
                 <Text style={styles.chipBtnText}>
                   {selCount === actividades.length ? 'Ninguna' : 'Todas'}
@@ -488,7 +546,19 @@ export default function AporteScreen({ navigation, route }: any) {
             )}
           </View>
 
-          {actividades.length === 0 ? (
+          {!contratoActivo ? (
+            <View style={styles.empty}>
+              <Icon name="document-text-outline" size={32} color={COLORS.border} />
+              <Text style={styles.emptyText}>
+                Selecciona un contrato arriba para ver las actividades disponibles
+              </Text>
+            </View>
+          ) : loadingActividades ? (
+            <View style={styles.empty}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.emptyText}>Cargando actividades del contrato...</Text>
+            </View>
+          ) : actividades.length === 0 ? (
             <View style={styles.empty}>
               <Icon name="list-outline" size={32} color={COLORS.border} />
               <Text style={styles.emptyText}>
@@ -496,42 +566,52 @@ export default function AporteScreen({ navigation, route }: any) {
               </Text>
             </View>
           ) : (
-            actividades.map((act) => {
-              const sel = actividadesSeleccionadas.includes(act.id);
-              return (
-                <TouchableOpacity
-                  key={act.id}
-                  style={[styles.actItem, sel && styles.actItemSel]}
-                  onPress={() => toggleActividad(act.id)}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[styles.checkbox, sel && styles.checkboxSel]}
+            <ScrollView
+              style={styles.actividadesScroll}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {actividades.map((act, idx) => {
+                const actId = getActividadId(act);
+                const sel = !!actId && actividadesSeleccionadas.includes(actId);
+                const key = actId ? `act-${actId}` : `act-idx-${idx}`;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.actItem, sel && styles.actItemSel]}
+                    onPress={() => actId && toggleActividad(actId)}
+                    activeOpacity={0.7}
                   >
-                    {sel && <Icon name="checkmark" size={12} color="#fff" />}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.actTitle, sel && styles.actTitleSel]}>
-                      {act.numero != null ? `${act.numero}. ` : ''}
-                      {act.titulo}
-                    </Text>
-                    {act.descripcion ? (
-                      <Text style={styles.actDesc} numberOfLines={2}>
-                        {act.descripcion}
+                    <View style={[styles.checkbox, sel && styles.checkboxSel]}>
+                      {sel && <Icon name="checkmark" size={12} color="#fff" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.actTitle, sel && styles.actTitleSel]}>
+                        {act.numero != null ? `${act.numero}. ` : ''}
+                        {act.titulo}
                       </Text>
-                    ) : null}
-                  </View>
-                </TouchableOpacity>
-              );
-            })
+                      {act.descripcion ? (
+                        <Text style={styles.actDesc} numberOfLines={2}>
+                          {act.descripcion}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           )}
         </View>
 
         {/* ── Card: Descripción ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Descripción del aporte</Text>
+          <Text style={styles.cardTitle}>
+            Descripción del aporte
+            <Text style={{ color: '#ef4444' }}>*</Text>
+          </Text>
           <Text style={styles.cardSub}>
-            Describe la acción concreta que realizaste hoy
+            Campo obligatorio - Describe la acción concreta que realizaste hoy
           </Text>
 
           <TextInput
@@ -548,66 +628,32 @@ export default function AporteScreen({ navigation, route }: any) {
           <Text style={styles.charCount}>
             {descripcion.length} / {MAX_DESC}
           </Text>
-
-          {/* Grabación de audio */}
-          <View style={styles.audioBox}>
-            <View style={styles.audioBoxHeader}>
-              <Icon name="mic-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.audioBoxTitle}>Dictado por voz</Text>
-            </View>
-
-            {!isRecording && !isProcessing && (
-              <TouchableOpacity style={styles.audioBtn} onPress={startRecording}>
-                <Icon name="mic" size={18} color="#fff" />
-                <Text style={styles.audioBtnText}>Grabar (máx. 60 s)</Text>
-              </TouchableOpacity>
-            )}
-
-            {isRecording && (
-              <View style={styles.audioRecordingRow}>
-                <Animated.View
-                  style={[styles.recordDot, { transform: [{ scale: pulseAnim }] }]}
-                />
-                <Text style={styles.recordTime}>{tiempoRestante}s</Text>
-                <TouchableOpacity
-                  style={styles.stopBtn}
-                  onPress={stopRecording}
-                >
-                  <Icon name="stop" size={16} color="#fff" />
-                  <Text style={styles.stopBtnText}>Detener</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {isProcessing && !isRecording && (
-              <View style={styles.audioRow}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-                <Text style={styles.audioMuted}>Transcribiendo...</Text>
-              </View>
-            )}
-
-            {audioError && (
-              <View style={styles.audioRow}>
-                <Icon name="alert-circle-outline" size={14} color={COLORS.danger} />
-                <Text style={styles.audioError}>{audioError}</Text>
-              </View>
-            )}
-
-            <Text style={styles.audioHint}>
-              El texto se añadirá automáticamente al campo de descripción
-            </Text>
-          </View>
         </View>
 
         {/* ── Card: Evidencias ── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Evidencias</Text>
-          <Text style={styles.cardSub}>Adjunta archivos, enlaces o notas</Text>
+        <View style={[styles.card, !descripcion.trim() && styles.cardDisabled]}>
+          <View>
+            <Text style={styles.cardTitle}>Evidencias</Text>
+            <Text style={styles.cardSub}>
+              {descripcion.trim() ? 'Adjunta archivos, enlaces o notas' : 'Primero escribe la descripción del aporte'}
+            </Text>
+          </View>
 
-          <EvidenciaUpload
-            actividadId={actividadesSeleccionadas[0] || ''}
-            onSuccess={handleEvidenciaGuardada}
-          />
+          {descripcion.trim() ? (
+            <EvidenciaUpload
+              actividadId={actividadesSeleccionadas[0] || ''}
+              usuarioId={userId || ''}
+              contratoId={contratoActivo ? getContratoId(contratoActivo) : ''}
+              onSuccess={handleEvidenciaGuardada}
+            />
+          ) : (
+            <View style={styles.disabledPlaceholder}>
+              <Icon name="lock-closed-outline" size={32} color={COLORS.disabled} />
+              <Text style={styles.disabledText}>
+                Debes escribir primero la descripción del aporte para poder agregar evidencias
+              </Text>
+            </View>
+          )}
 
           {evidenciasGuardadas.length > 0 && (
             <View style={styles.evidList}>
@@ -624,8 +670,8 @@ export default function AporteScreen({ navigation, route }: any) {
                         ev.tipo === 'enlace'
                           ? 'link-outline'
                           : ev.tipo === 'nota'
-                          ? 'document-text-outline'
-                          : 'attach-outline'
+                            ? 'document-text-outline'
+                            : 'attach-outline'
                       }
                       size={14}
                       color={COLORS.primary}
@@ -657,9 +703,9 @@ export default function AporteScreen({ navigation, route }: any) {
       {/* ── Botones flotantes ── */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.footerBtn, styles.footerBtnDraft]}
+          style={[styles.footerBtn, styles.footerBtnDraft, (!contratoActivo || submitting || selCount === 0) && styles.footerBtnDisabled]}
           onPress={() => handleSubmit(true)}
-          disabled={submitting || selCount === 0}
+          disabled={!contratoActivo || submitting || selCount === 0}
         >
           <Icon name="save-outline" size={18} color={COLORS.text} />
           <Text style={styles.footerBtnDraftText}>Borrador</Text>
@@ -669,10 +715,10 @@ export default function AporteScreen({ navigation, route }: any) {
           style={[
             styles.footerBtn,
             styles.footerBtnPrimary,
-            (submitting || selCount === 0 || !!errorFecha) && styles.footerBtnDisabled,
+            (!contratoActivo || submitting || selCount === 0 || !!errorFecha) && styles.footerBtnDisabled,
           ]}
           onPress={() => handleSubmit(false)}
-          disabled={submitting || selCount === 0 || !!errorFecha}
+          disabled={!contratoActivo || submitting || selCount === 0 || !!errorFecha}
         >
           {submitting ? (
             <ActivityIndicator color="#fff" size="small" />
@@ -699,9 +745,14 @@ export default function AporteScreen({ navigation, route }: any) {
         ) : (
           <FlatList
             data={contratos}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => {
+              const id = getContratoId(item);
+              return id ? `contrato-${id}` : `contrato-idx-${index}`;
+            }}
             renderItem={({ item }) => {
-              const active = contratoActivo?.id === item.id;
+              const itemId = getContratoId(item);
+              const activeId = contratoActivo ? getContratoId(contratoActivo) : null;
+              const active = !!itemId && !!activeId && itemId === activeId;
               return (
                 <TouchableOpacity
                   style={[styles.modalItem, active && styles.modalItemActive]}
@@ -810,6 +861,7 @@ const COLORS = {
   border: '#e5e7eb',
   card: '#ffffff',
   bg: '#f3f4f8',
+  disabled: '#d1d5db',
 };
 
 // ─── Estilos ─────────────────────────────────────────────────────────────────
@@ -879,6 +931,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
   },
   chipBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+
+  actividadesScroll: {
+    maxHeight: 260,
+  },
 
   // Field
   fieldLabel: {
@@ -1000,6 +1056,22 @@ const styles = StyleSheet.create({
   audioHint: { fontSize: 11, color: COLORS.muted, lineHeight: 15 },
 
   // Evidencias
+  cardDisabled: {
+    opacity: 0.6,
+  },
+  disabledPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+  },
+  disabledText: {
+    fontSize: 13,
+    color: COLORS.muted,
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
   evidList: {
     marginTop: 14,
     paddingTop: 14,

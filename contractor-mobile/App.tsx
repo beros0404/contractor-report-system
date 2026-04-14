@@ -6,8 +6,10 @@ import Icon from '@expo/vector-icons/Ionicons';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import LoginScreen from './screens/LoginScreen';
+import ContratosScreen from './screens/ContratosScreen';
+import ActividadesDetalleScreen from './screens/ActividadesDetalleScreen';
+import EvidenciaDetalleScreen from './screens/EvidenciaDetalleScreen';
 import DashboardScreen from './screens/DashboardScreen';
-import ActividadesScreen from './screens/ActividadesScreen';
 import CalendarioScreen from './screens/CalendarioScreen';
 import PerfilScreen from './screens/PerfilScreen';
 import AporteScreen from './screens/AporteScreen';
@@ -21,10 +23,10 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName = '';
-          if (route.name === 'Dashboard') {
+          if (route.name === 'Contratos') {
+            iconName = focused ? 'document' : 'document-outline';
+          } else if (route.name === 'Dashboard') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Actividades') {
-            iconName = focused ? 'document-text' : 'document-text-outline';
           } else if (route.name === 'Calendario') {
             iconName = focused ? 'calendar' : 'calendar-outline';
           } else if (route.name === 'Perfil') {
@@ -34,15 +36,37 @@ function MainTabs() {
         },
         tabBarActiveTintColor: '#3b82f6',
         tabBarInactiveTintColor: '#9ca3af',
-        headerShown: true,
-        headerStyle: { backgroundColor: '#fff' },
-        headerTitleStyle: { fontWeight: '600' },
+        headerShown: false,
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Actividades" component={ActividadesScreen} />
-      <Tab.Screen name="Calendario" component={CalendarioScreen} />
-      <Tab.Screen name="Perfil" component={PerfilScreen} />
+      <Tab.Screen 
+        name="Contratos" 
+        component={ContratosScreen}
+        options={{
+          title: 'Contratos',
+        }}
+      />
+      <Tab.Screen 
+        name="Dashboard" 
+        component={DashboardScreen}
+        options={{
+          title: 'Dashboard',
+        }}
+      />
+      <Tab.Screen 
+        name="Calendario" 
+        component={CalendarioScreen}
+        options={{
+          title: 'Calendario',
+        }}
+      />
+      <Tab.Screen 
+        name="Perfil" 
+        component={PerfilScreen}
+        options={{
+          title: 'Perfil',
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -55,6 +79,20 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen 
+            name="ActividadesDetalle" 
+            component={ActividadesDetalleScreen}
+            options={{
+              animationEnabled: true,
+            }}
+          />
+          <Stack.Screen 
+            name="EvidenciaDetalle" 
+            component={EvidenciaDetalleScreen}
+            options={{
+              animationEnabled: true,
+            }}
+          />
           <Stack.Screen name="Aporte" component={AporteScreen} />
         </Stack.Navigator>
       </NavigationContainer>

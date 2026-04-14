@@ -83,10 +83,7 @@ export const ActivityCard = ({
           <Icon name="create-outline" size={18} color="#3b82f6" />
           <Text style={styles.actionText}>Aporte</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={onAddEvidencia}>
-          <Icon name="cloud-upload-outline" size={18} color="#3b82f6" />
-          <Text style={styles.actionText}>Evidencia</Text>
-        </TouchableOpacity>
+      
       </View>
     </TouchableOpacity>
   );

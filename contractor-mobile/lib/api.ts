@@ -2,7 +2,9 @@
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://tu-backend.onrender.com';
+const API_URL = process.env.EXPO_PUBLIC_API_URL; 
+// Debug: Log API URL on startup
+console.log('[API] Conectando a:', API_URL);
 
 export const api = {
   // Auth
@@ -43,14 +45,23 @@ export const api = {
   // Contratos
   async getContratos(usuarioId: string) {
     try {
-      const res = await fetch(`${API_URL}/api/contracts?usuarioId=${usuarioId}`);
+      const url = `${API_URL}/api/contracts?usuarioId=${usuarioId}`;
+      console.log('[API] GET Contratos:', url);
+      const res = await fetch(url);
       if (!res.ok) {
-        if (res.status === 404) return [];
+        if (res.status === 404) {
+          console.log('[API] No contratos encontrados (404)');
+          return [];
+        }
         throw new Error(`Error ${res.status}: ${await res.text()}`);
       }
-      return await res.json();
+      const data = await res.json();
+      console.log('[API] Contratos recibidos:', data.length, 'items');
+      return data;
     } catch (error) {
-      console.error('Error en getContratos:', error);
+      console.error('[API] Error en getContratos:', error);
+      console.error('[API] Backend URL:', `${API_URL}/api/contracts`);
+      console.error('[API] ¿Backend está corriendo en localhost:3001?');
       return [];
     }
   },
@@ -69,14 +80,18 @@ export const api = {
   // Actividades
   async getActividades(contratoId: string, usuarioId: string) {
     try {
-      const res = await fetch(`${API_URL}/api/activities?contratoId=${contratoId}&usuarioId=${usuarioId}`);
+      const url = `${API_URL}/api/activities?contratoId=${contratoId}&usuarioId=${usuarioId}`;
+      console.log('[API] GET Actividades:', url);
+      const res = await fetch(url);
       if (!res.ok) {
         if (res.status === 404) return [];
         throw new Error(`Error ${res.status}: ${await res.text()}`);
       }
-      return await res.json();
+      const data = await res.json();
+      return data;
     } catch (error) {
-      console.error('Error en getActividades:', error);
+      console.error('[API] Error en getActividades:', error);
+      console.error('[API] Backend URL:', `${API_URL}/api/activities`);
       return [];
     }
   },
@@ -131,18 +146,42 @@ export const api = {
 
   async uploadEvidence(formData: FormData, usuarioId: string, contratoId: string, actividadId: string) {
     try {
-      formData.append('usuarioId', usuarioId);
-      formData.append('contratoId', contratoId);
-      formData.append('actividadId', actividadId);
-      
+      // Los campos usuarioId, contratoId y actividadId ya vienen en el formData
+      // desde EvidenciaUpload.tsx — no los agregamos de nuevo para evitar duplicados.
       const res = await fetch(`${API_URL}/api/evidencias/upload`, {
         method: 'POST',
         body: formData,
+        // NO incluir Content-Type: fetch lo pone automáticamente con el boundary correcto
       });
-      if (!res.ok) throw new Error('Error al subir evidencia');
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[API] uploadEvidence error:', errorText);
+        throw new Error('Error al subir evidencia');
+      }
       return await res.json();
     } catch (error) {
       console.error('Error en uploadEvidence:', error);
+      throw error;
+    }
+  },
+
+  async addEvidence(data: any) {
+    try {
+      const endpoint = data.tipo === 'enlace' 
+        ? `${API_URL}/api/evidencias/enlace`
+        : data.tipo === 'nota'
+        ? `${API_URL}/api/evidencias/nota`
+        : `${API_URL}/api/evidencias/upload`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(`Error al agregar ${data.tipo}`);
+      return await res.json();
+    } catch (error) {
+      console.error('Error en addEvidence:', error);
       throw error;
     }
   },
