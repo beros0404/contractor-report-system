@@ -35,7 +35,6 @@ interface UploadActividadesProps {
   usuarioId: string
 }
 
-// Componente para actividad con drag and drop
 const SortableActividad = ({ 
   actividad, 
   index, 
@@ -160,7 +159,6 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
   const [editText, setEditText] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Configurar sensores para drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -172,7 +170,6 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
     })
   )
 
-  // Manejar el final del drag and drop
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     
@@ -253,150 +250,96 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
     })
   }
 
-  const parseActividades = (text: string): string[] => {
-    const actividades: string[] = []
-    
-    let cleanedText = text
-      .replace(/\r\n/g, '\n')
-      .replace(/\n+/g, '\n')
-      .replace(/[•\-–—]/g, ' ')
-    
-    const seccionRegex = /ACTIVIDADES?\s*(?:ESPECÍFICAS?\s*)?DEL\s*CONTRATISTA:?\s*([\s\S]*?)(?=OBSERVACIONES|FIRMAS|---|$)/i
-    const seccionMatch = cleanedText.match(seccionRegex)
-    
-    let contenidoActividades = seccionMatch ? seccionMatch[1] : cleanedText
-    
-    const patronNumerado = /(\d+)\.\s+([^0-9]+?)(?=\d+\.|OBSERVACIONES|FIRMAS|---|$)/gi
-    let match
-    
-    while ((match = patronNumerado.exec(contenidoActividades)) !== null) {
-      let actividad = match[2] ? match[2].trim() : ""
-      
-      if (!actividad) continue
-      
-      actividad = actividad
-        .replace(/\s+/g, ' ')
-        .replace(/["']/g, '')
-        .replace(/^[•\-–—]\s*/, '')
-        .trim()
-      
-      actividad = actividad.split('---')[0]
-      actividad = actividad.split('OBSERVACIONES')[0]
-      actividad = actividad.split('FIRMAS')[0]
-      actividad = actividad.trim()
-      
-      const esActividadValida = 
-        actividad.length > 20 && 
-        actividad.length < 500 &&
-        !actividad.includes('ACTIVIDADES') &&
-        !actividad.includes('CONTRATISTA') &&
-        !actividad.includes('OBJETO') &&
-        !actividad.includes('FECHA') &&
-        !actividad.includes('NÚMERO') &&
-        !actividad.includes('VIGENCIA') &&
-        !actividad.includes('OBSERVACIONES') &&
-        !actividad.includes('FIRMAS') &&
-        !actividad.match(/^[A-Z\s]{10,}$/) 
-      
-      if (esActividadValida) {
-        if (actividad.length > 900) {
-          const puntoIndex = actividad.indexOf('.', 250)
-          if (puntoIndex > 0) {
-            actividad = actividad.substring(0, puntoIndex + 1)
-          } else {
-            actividad = actividad.substring(0, 900) + '...'
-          }
-        }
-        
-        actividades.push(actividad)
-      }
+const parseActividades = (text: string): string[] => {
+  const actividades: string[] = []
+
+  let cleanedText = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{2,}/g, '\n')
+    .replace(/[•\-–—]/g, '•') 
+  const seccionRegex = /ACTIVIDADES?(?:\s+(?:CONTRACTUALES|ESPECÍFICAS|DEL CONTRATISTA))?[:\s]*([\s\S]*?)(?=OBSERVACIONES|FIRMAS|---|$)/i
+  const seccionMatch = cleanedText.match(seccionRegex)
+
+  let contenidoActividades = seccionMatch ? seccionMatch[1] : cleanedText
+
+  contenidoActividades = contenidoActividades
+    .replace(/(\d+)[\.\-\):]\s*/g, '\n$1. ')
+    .replace(/\n{2,}/g, '\n')
+
+
+  const patronNumerado = /(\d+)[\.\-\):]\s+([\s\S]*?)(?=\n?\s*\d+[\.\-\):]\s|OBSERVACIONES|FIRMAS|---|$)/gi
+
+  let match
+  while ((match = patronNumerado.exec(contenidoActividades)) !== null) {
+    let actividad = match[2]?.trim()
+
+    if (!actividad) continue
+
+    actividad = actividad
+      .replace(/\s+/g, ' ')
+      .replace(/["']/g, '')
+      .trim()
+
+    if (actividad.length > 20 && actividad.length < 500) {
+      actividades.push(actividad)
     }
-    
-    if (actividades.length === 0) {
-      const todosLosNumeros = /(\d+)\.\s+([^0-9]{20,}?)(?=\d+\.|$)/gi
-      while ((match = todosLosNumeros.exec(cleanedText)) !== null) {
-        let actividad = match[2] ? match[2].trim() : ""
-        if (actividad) {
-          actividad = actividad.replace(/\s+/g, ' ').trim()
-          if (actividad.length > 20 && actividad.length < 500 &&
-              !actividad.includes('ACTIVIDADES') && 
-              !actividad.includes('CONTRATISTA')) {
-            actividades.push(actividad)
-          }
-        }
-      }
-    }
-    
-    if (actividades.length === 0) {
-      const lineas = cleanedText.split(/\n|\.\s+/)
-      for (const linea of lineas) {
-        const trimmed = linea.trim()
-        if (trimmed && trimmed.match(/^\d+\./) && trimmed.length > 20) {
-          let actividad = trimmed.replace(/^\d+\.\s*/, '')
-          actividad = actividad.replace(/\s+/g, ' ').trim()
-          if (actividad.length > 20 && !actividad.includes('ACTIVIDADES')) {
-            actividades.push(actividad)
-          }
-        }
-      }
-    }
-    
-    const actividadesLimpias: string[] = []
-    
-    for (let act of actividades) {
-      if (!act || typeof act !== 'string') continue
-      
-      if (act.includes('ACTIVIDADES ESPECÍFICAS') || 
-          act.includes('ACTIVIDADES DEL CONTRATISTA')) {
-        continue
-      }
-      
-      act = act.split('---')[0]
-      act = act.split('OBSERVACIONES')[0]
-      act = act.split('FIRMAS')[0]
-      
-      act = act
-        .replace(/^[A-Z][a-z]{2,3}:\s*/, '')
-        .replace(/^-\s*/, '')
-        .replace(/\s+/g, ' ')
-        .replace(/["']/g, '')
-        .trim()
-      
-      if (act && act.length > 20) {
-        actividadesLimpias.push(act)
-      }
-    }
-    
-    const actividadesUnicas = actividadesLimpias.filter((act, index, self) => 
-      self.indexOf(act) === index
-    )
-    
-    const actividadesFinales: string[] = []
-    
-    for (const act of actividadesUnicas) {
-      if (!act) continue
-      
-      const esInvalida = 
-        act.includes('ACTIVIDADES ESPECÍFICAS') ||
-        act.includes('ACTIVIDADES DEL CONTRATISTA') ||
-        act.includes('OBJETO DEL CONTRATO') ||
-        act.includes('FECHA DE INICIO') ||
-        act.includes('NÚMERO DEL CONTRATO') ||
-        act.includes('VIGENCIA') ||
-        act.includes('OBSERVACIONES') ||
-        act.includes('FIRMAS') ||
-        act.length < 20 ||
-        act.split(' ').length < 4
-      
-      if (!esInvalida) {
-        actividadesFinales.push(act)
-      }
-    }
-    
-    const actividadesLimitadas = actividadesFinales.slice(0, 50)
-    
-    return actividadesLimitadas
   }
+
+  if (actividades.length === 0) {
+    const lineas = contenidoActividades.split('\n')
+
+    for (let linea of lineas) {
+      linea = linea.trim()
+
+      if (linea.startsWith('•')) {
+        let actividad = linea.replace(/^•\s*/, '').trim()
+
+        if (actividad.length > 20) {
+          actividades.push(actividad)
+        }
+      }
+    }
+  }
+
+  if (actividades.length === 0) {
+    const lineas = contenidoActividades
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 20)
+
+    for (const linea of lineas) {
+      const esTitulo =
+        linea.toUpperCase().includes('ACTIVIDADES') ||
+        linea.toUpperCase().includes('CONTRATO') ||
+        linea.toUpperCase().includes('OBJETO') ||
+        linea.toUpperCase().includes('OBSERVACIONES') ||
+        linea.toUpperCase().includes('FIRMAS')
+
+      if (!esTitulo) {
+        actividades.push(linea)
+      }
+    }
+  }
+
+  const actividadesLimpias = actividades
+    .map(act =>
+      act
+        .replace(/\s+/g, ' ')
+        .replace(/["']/g, '')
+        .trim()
+    )
+    .filter(act =>
+      act.length > 20 &&
+      act.split(' ').length >= 4 &&
+      !act.match(/^[A-Z\s]{10,}$/)
+    )
+
+  const actividadesUnicas = actividadesLimpias.filter(
+    (act, index, self) => self.indexOf(act) === index
+  )
+
+  return actividadesUnicas.slice(0, 50)
+}
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -511,7 +454,7 @@ export function UploadActividades({ onActividadesExtracted, contratoId, usuarioI
           Cargar actividades desde documento
         </h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-md">
-          Sube el PDF, Word o imagen del contrato para extraer automáticamente las actividades
+          Sube el PDF o Word del contrato para extraer automáticamente las actividades
         </p>
         
         {preview.length === 0 ? (
